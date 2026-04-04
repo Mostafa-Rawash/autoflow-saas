@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MessageSquare, TrendingUp, Users, Clock, ArrowUpRight, ArrowDownRight, RefreshCw } from 'lucide-react';
+import { 
+  MessageSquare, TrendingUp, TrendingDown, Users, Clock, ArrowUpRight, ArrowDownRight, 
+  RefreshCw, Smartphone, Zap, BarChart3, Crown, Settings, Bell, ChevronLeft
+} from 'lucide-react';
 import { conversationsAPI, analyticsAPI } from '../api';
 import useAuthStore from '../store/authStore';
 
@@ -8,42 +11,41 @@ const mockStats = {
   totalConversations: 48,
   activeConversations: 12,
   totalMessages: 326,
-  responseRate: 92
+  responseRate: 92,
+  avgResponseTime: '45 ثانية'
+};
+
+const mockTrends = {
+  conversations: { value: 12, positive: true },
+  messages: { value: 23, positive: true },
+  responseTime: { value: 8, positive: true },
+  responseRate: { value: 5, positive: true }
 };
 
 const mockChannelBreakdown = [
-  { _id: 'whatsapp', count: 48 }
+  { _id: 'whatsapp', count: 48, color: '#25D366', name: 'واتس آب' }
 ];
 
 const mockRecentConversations = [
-  {
-    _id: 'conv-1',
-    channel: 'whatsapp',
-    contact: { name: 'أحمد علي', phone: '+201012345678' },
-    lastMessage: { content: 'عايز أعرف سعر الباقة المناسبة ليا' },
-    status: 'active'
-  },
-  {
-    _id: 'conv-2',
-    channel: 'whatsapp',
-    contact: { name: 'سارة محمود', phone: '+201023456789' },
-    lastMessage: { content: 'تمام، شكراً على الرد السريع' },
-    status: 'pending'
-  },
-  {
-    _id: 'conv-3',
-    channel: 'whatsapp',
-    contact: { name: 'محمد خالد', phone: '+201034567890' },
-    lastMessage: { content: 'محتاج أفعل الحساب' },
-    status: 'resolved'
-  }
+  { _id: 'conv-1', channel: 'whatsapp', contact: { name: 'أحمد علي', phone: '+201012345678' }, lastMessage: { content: 'عايز أعرف سعر الباقة المناسبة ليا' }, status: 'active', unread: 2, time: '10:30 ص' },
+  { _id: 'conv-2', channel: 'whatsapp', contact: { name: 'سارة محمود', phone: '+201098765432' }, lastMessage: { content: 'تمام، شكراً على الرد السريع 🙏' }, status: 'resolved', unread: 0, time: '09:45 ص' },
+  { _id: 'conv-3', channel: 'whatsapp', contact: { name: 'محمد خالد', phone: '+201112223334' }, lastMessage: { content: 'هل عندكم فرع في الإسكندرية؟' }, status: 'pending', unread: 1, time: 'أمس' },
+  { _id: 'conv-4', channel: 'whatsapp', contact: { name: 'فاطمة أحمد', phone: '+201223334445' }, lastMessage: { content: 'عايز أطلب حجز للعيادة بكرة' }, status: 'active', unread: 3, time: 'أمس' }
+];
+
+const mockQuickStats = [
+  { label: 'قواعد الرد التلقائي', value: 5, link: '/auto-replies' },
+  { label: 'قوالب نشطة', value: 12, link: '/templates' },
+  { label: 'أيام متبقية في الاشتراك', value: 23, link: '/subscription' }
 ];
 
 const Dashboard = () => {
   const { user } = useAuthStore();
   const [stats, setStats] = useState(mockStats);
+  const [trends, setTrends] = useState(mockTrends);
   const [channelBreakdown, setChannelBreakdown] = useState(mockChannelBreakdown);
   const [recentConversations, setRecentConversations] = useState(mockRecentConversations);
+  const [quickStats, setQuickStats] = useState(mockQuickStats);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,111 +64,201 @@ const Dashboard = () => {
       const channelData = channelsRes.status === 'fulfilled' ? channelsRes.value.data : null;
       const conversationsData = conversationsRes.status === 'fulfilled' ? conversationsRes.value.data : null;
 
-      setStats({
-        totalConversations: statsData?.conversations?.total || mockStats.totalConversations,
-        activeConversations: statsData?.conversations?.active || mockStats.activeConversations,
-        totalMessages: statsData?.messages?.total || mockStats.totalMessages,
-        responseRate: statsData?.conversations?.total > 0
-          ? Math.round((statsData.conversations.resolved / statsData.conversations.total) * 100)
-          : mockStats.responseRate
-      });
+      if (statsData) {
+        setStats({
+          totalConversations: statsData.conversations?.total || mockStats.totalConversations,
+          activeConversations: statsData.conversations?.active || mockStats.activeConversations,
+          totalMessages: statsData.messages?.total || mockStats.totalMessages,
+          responseRate: statsData.conversations?.total > 0
+            ? Math.round((statsData.conversations.resolved / statsData.conversations.total) * 100)
+            : mockStats.responseRate,
+          avgResponseTime: statsData.avgResponseTime || mockStats.avgResponseTime
+        });
+      }
 
-      setChannelBreakdown(channelData?.breakdown?.length ? channelData.breakdown : mockChannelBreakdown);
-      setRecentConversations(conversationsData?.conversations?.length ? conversationsData.conversations : mockRecentConversations);
+      if (channelData?.breakdown?.length) {
+        setChannelBreakdown(channelData.breakdown.map(b => ({
+          ...b,
+          color: '#25D366',
+          name: 'واتس آب'
+        })));
+      }
+
+      if (conversationsData?.conversations?.length) {
+        setRecentConversations(conversationsData.conversations.map(c => ({
+          _id: c._id,
+          channel: c.channel || 'whatsapp',
+          contact: c.contact || { name: 'مستخدم', phone: '' },
+          lastMessage: { content: c.lastMessage?.content || 'لا توجد رسائل' },
+          status: c.status || 'active',
+          unread: c.unreadCount || 0,
+          time: c.lastMessage?.timestamp ? new Date(c.lastMessage.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : 'الآن'
+        })));
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      setStats(mockStats);
-      setChannelBreakdown(mockChannelBreakdown);
-      setRecentConversations(mockRecentConversations);
     } finally {
       setLoading(false);
     }
   };
 
   const statsCards = [
-    { title: 'المحادثات اليوم', value: stats.totalConversations, icon: MessageSquare, change: '+12%', positive: true },
-    { title: 'محادثات نشطة', value: stats.activeConversations, icon: Users, change: '+5%', positive: true },
-    { title: 'إجمالي الرسائل', value: stats.totalMessages, icon: TrendingUp, change: '+23%', positive: true },
-    { title: 'معدل الرد', value: `${stats.responseRate}%`, icon: Clock, change: '+8%', positive: true }
+    { title: 'المحادثات اليوم', value: stats.totalConversations, icon: MessageSquare, trend: trends.conversations, color: 'primary' },
+    { title: 'محادثات نشطة', value: stats.activeConversations, icon: Users, trend: trends.conversations, color: 'green' },
+    { title: 'إجمالي الرسائل', value: stats.totalMessages, icon: BarChart3, trend: trends.messages, color: 'purple' },
+    { title: 'معدل الرضا', value: `${stats.responseRate}%`, icon: TrendingUp, trend: trends.responseRate, color: 'yellow' }
   ];
 
-  const channelColors = { whatsapp: '#25D366' };
+  const quickActions = [
+    { icon: Smartphone, label: 'توصيل واتس آب', link: '/channels', color: 'whatsapp', available: true },
+    { icon: Zap, label: 'الردود التلقائية', link: '/auto-replies', color: 'primary', available: true },
+    { icon: MessageSquare, label: 'المحادثات', link: '/conversations', color: 'blue', available: true },
+    { icon: Crown, label: 'الاشتراك', link: '/subscription', color: 'yellow', available: true }
+  ];
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500" /></div>;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Welcome Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">مرحباً، {user?.name?.split(' ')[0] || 'Mostafa'}! 👋</h1>
-          <p className="text-gray-400 mt-1">إليك نظرة عامة على أداء حسابك</p>
+          <h1 className="text-2xl md:text-3xl font-bold">مرحباً، {user?.name?.split(' ')[0] || 'Mostafa'}! 👋</h1>
+          <p className="text-gray-400 mt-1">إليك نظرة عامة على أداء حسابك اليوم</p>
         </div>
-        <button onClick={fetchData} className="btn-secondary flex items-center gap-2">
-          <RefreshCw className="w-4 h-4" /> تحديث
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={fetchData} className="btn-secondary flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" /> تحديث
+          </button>
+          <Link to="/settings" className="p-2.5 rounded-lg bg-dark-700 hover:bg-dark-600">
+            <Settings className="w-5 h-5 text-gray-400" />
+          </Link>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statsCards.map((stat, index) => (
-          <div key={index} className="card p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">{stat.title}</p>
-                <p className="text-3xl font-bold mt-2">{stat.value}</p>
+          <div key={index} className="card p-5 hover:border-primary-500/30 transition-colors">
+            <div className="flex items-start justify-between mb-3">
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${
+                stat.color === 'primary' ? 'bg-primary-500/20' :
+                stat.color === 'green' ? 'bg-green-500/20' :
+                stat.color === 'purple' ? 'bg-purple-500/20' :
+                'bg-yellow-500/20'
+              }`}>
+                <stat.icon className={`w-5 h-5 ${
+                  stat.color === 'primary' ? 'text-primary-500' :
+                  stat.color === 'green' ? 'text-green-500' :
+                  stat.color === 'purple' ? 'text-purple-500' :
+                  'text-yellow-500'
+                }`} />
               </div>
-              <div className="w-12 h-12 rounded-xl bg-primary-500/20 flex items-center justify-center">
-                <stat.icon className="w-6 h-6 text-primary-500" />
-              </div>
+              {stat.trend && (
+                <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
+                  stat.trend.positive ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+                }`}>
+                  {stat.trend.positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                  {stat.trend.value}%
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-1 mt-4">
-              {stat.positive ? <ArrowUpRight className="w-4 h-4 text-green-400" /> : <ArrowDownRight className="w-4 h-4 text-red-400" />}
-              <span className={`text-sm ${stat.positive ? 'text-green-400' : 'text-red-400'}`}>{stat.change}</span>
-              <span className="text-xs text-gray-500 mr-1">من أمس</span>
-            </div>
+            <p className="text-gray-400 text-sm mb-1">{stat.title}</p>
+            <p className="text-2xl font-bold">{stat.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="card p-6">
-          <h3 className="font-bold mb-4">توزيع المحادثات حسب القناة</h3>
+      {/* Quick Stats Bar */}
+      <div className="grid grid-cols-3 gap-4">
+        {quickStats.map((item, i) => (
+          <Link key={i} to={item.link} className="card p-4 flex items-center justify-between hover:border-primary-500/30 transition-colors">
+            <span className="text-gray-400 text-sm">{item.label}</span>
+            <span className="font-bold text-lg">{item.value}</span>
+          </Link>
+        ))}
+      </div>
+
+      {/* Main Grid */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Conversations Chart */}
+        <div className="lg:col-span-2 card p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-bold flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-primary-500" />
+              توزيع المحادثات حسب القناة
+            </h3>
+            <span className="text-xs text-gray-500">واتس آب فقط</span>
+          </div>
           <div className="space-y-4">
             {channelBreakdown.map((item) => (
-              <div key={item._id} className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full" style={{ background: channelColors[item._id] || '#00D4AA' }} />
-                <span className="flex-1 capitalize">{item._id}</span>
-                <div className="w-32 h-2 bg-dark-700 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: '100%', background: channelColors[item._id] || '#00D4AA' }} />
+              <div key={item._id} className="flex items-center gap-4">
+                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: item.color }} />
+                <span className="flex-1 font-medium">{item.name}</span>
+                <div className="w-48 h-3 bg-dark-700 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: '100%', background: item.color }} />
                 </div>
-                <span className="text-sm text-gray-400 w-12 text-left">{item.count}</span>
+                <span className="text-sm text-gray-400 w-12 text-left font-medium">{item.count}</span>
               </div>
             ))}
           </div>
+          
+          {/* Mini Chart Visualization */}
+          <div className="mt-6 pt-6 border-t border-dark-700">
+            <div className="flex items-end gap-2 h-24">
+              {[65, 45, 78, 52, 88, 62, 95].map((height, i) => (
+                <div key={i} className="flex-1 bg-gradient-to-t from-primary-500 to-whatsapp rounded-t transition-all hover:opacity-80" style={{ height: `${height}%` }} />
+              ))}
+            </div>
+            <div className="flex justify-between mt-2 text-xs text-gray-500">
+              <span>السبت</span>
+              <span>الأحد</span>
+              <span>الإثنين</span>
+              <span>الثلاثاء</span>
+              <span>الأربعاء</span>
+              <span>الخميس</span>
+              <span>الجمعة</span>
+            </div>
+          </div>
         </div>
 
+        {/* Recent Conversations */}
         <div className="card p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold">أحدث المحادثات</h3>
-            <Link to="/conversations" className="text-primary-500 text-sm hover:underline">عرض الكل</Link>
+            <h3 className="font-bold flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-primary-500" />
+              أحدث المحادثات
+            </h3>
+            <Link to="/conversations" className="text-primary-500 text-sm hover:underline flex items-center gap-1">
+              عرض الكل <ChevronLeft className="w-4 h-4" />
+            </Link>
           </div>
           <div className="space-y-3">
             {recentConversations.map((conv) => (
               <Link key={conv._id} to={`/conversations/${conv._id}`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg" style={{ background: `${channelColors[conv.channel]}20` }}>📱</div>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg bg-whatsapp/20">📱</div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{conv.contact?.name || conv.contact?.phone || 'مستخدم'}</p>
-                  <p className="text-sm text-gray-500 truncate">{conv.lastMessage?.content || 'لا توجد رسائل'}</p>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="font-medium truncate">{conv.contact.name}</p>
+                    <span className="text-xs text-gray-500">{conv.time}</span>
+                  </div>
+                  <p className="text-sm text-gray-500 truncate">{conv.lastMessage.content}</p>
                 </div>
-                <div className="text-left">
-                  <span className={`inline-block px-2 py-1 rounded-full text-xs ${conv.status === 'active' ? 'status-active' : conv.status === 'pending' ? 'status-pending' : 'status-resolved'}`}>
+                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${
+                    conv.status === 'active' ? 'bg-green-500/20 text-green-400' :
+                    conv.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                    'bg-primary-500/20 text-primary-400'
+                  }`}>
                     {conv.status === 'active' ? 'نشط' : conv.status === 'pending' ? 'معلق' : 'محلول'}
                   </span>
+                  {conv.unread > 0 && (
+                    <span className="bg-whatsapp text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                      {conv.unread}
+                    </span>
+                  )}
                 </div>
               </Link>
             ))}
@@ -174,31 +266,60 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Quick Actions */}
       <div className="card p-6">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="font-bold">إجراءات سريعة</h3>
-          <span className="px-2 py-1 bg-gray-700 text-gray-400 text-xs rounded-full">واتس آب فقط</span>
+          <span className="px-2 py-1 bg-whatsapp/20 text-whatsapp text-xs rounded-full">واتس آب فقط</span>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Link to="/channels" className="flex flex-col items-center gap-2 p-4 rounded-lg bg-whatsapp/10 border border-whatsapp/30 hover:bg-whatsapp/20 transition-colors">
-            <div className="text-3xl">📱</div>
-            <span className="text-sm font-medium">توصيل واتس آب</span>
-          </Link>
-          <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-dark-800/30 opacity-50 cursor-not-allowed relative">
-            <span className="absolute top-2 left-2 px-2 py-0.5 bg-gray-700 text-gray-400 text-xs rounded-full">قريباً</span>
-            <div className="text-3xl">📝</div>
-            <span className="text-sm text-gray-400">إنشاء قالب</span>
+          {quickActions.map((action, i) => (
+            <Link key={i} to={action.link} className={`p-4 rounded-xl border transition-all hover:scale-105 ${
+              action.available 
+                ? `bg-${action.color}/10 border-${action.color}/30 hover:bg-${action.color}/20`
+                : 'bg-dark-700/30 border-dark-600 opacity-50 cursor-not-allowed'
+            }`}>
+              <action.icon className={`w-6 h-6 mb-2 ${
+                action.color === 'whatsapp' ? 'text-whatsapp' :
+                action.color === 'primary' ? 'text-primary-500' :
+                action.color === 'blue' ? 'text-blue-500' :
+                'text-yellow-500'
+              }`} />
+              <p className="font-medium text-sm">{action.label}</p>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Response Time */}
+      <div className="card p-6 bg-gradient-to-br from-primary-500/10 to-whatsapp/10 border-primary-500/20">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-primary-500/20 flex items-center justify-center">
+              <Clock className="w-7 h-7 text-primary-500" />
+            </div>
+            <div>
+              <p className="text-gray-400 text-sm">متوسط وقت الرد</p>
+              <p className="text-2xl font-bold">{stats.avgResponseTime}</p>
+            </div>
           </div>
-          <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-dark-800/30 opacity-50 cursor-not-allowed relative">
-            <span className="absolute top-2 left-2 px-2 py-0.5 bg-gray-700 text-gray-400 text-xs rounded-full">قريباً</span>
-            <div className="text-3xl">📊</div>
-            <span className="text-sm text-gray-400">التقارير</span>
+          <div className="text-right">
+            <div className="flex items-center gap-1 text-green-400 text-sm">
+              <ArrowDownRight className="w-4 h-4" />
+              <span>تحسن {trends.responseTime.value}%</span>
+            </div>
+            <p className="text-gray-500 text-xs mt-1">مقارنة بالأسبوع الماضي</p>
           </div>
-          <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-dark-800/30 opacity-50 cursor-not-allowed relative">
-            <span className="absolute top-2 left-2 px-2 py-0.5 bg-gray-700 text-gray-400 text-xs rounded-full">قريباً</span>
-            <div className="text-3xl">👥</div>
-            <span className="text-sm text-gray-400">الفريق</span>
-          </div>
+        </div>
+      </div>
+
+      {/* WhatsApp-Only Notice */}
+      <div className="card p-4 bg-whatsapp/5 border-whatsapp/10">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">📱</span>
+          <p className="text-sm text-gray-400">
+            <span className="text-whatsapp font-medium">واتس آب</span> هو القناة النشطة حالياً. باقي القنوات ستتوفر قريباً.
+          </p>
         </div>
       </div>
     </div>
