@@ -20,6 +20,7 @@ const CONVERSATION_STATES = {
 export class ConversationManager {
   constructor(geminiUrl) {
     this.conversations = new Map();
+    this.chatHistories = new Map();
     this.geminiUrl = geminiUrl;
     this.apiKey = process.env.GEMINI_ROBOT_API_KEY || 'shared-secret-key';
   }
@@ -46,6 +47,46 @@ export class ConversationManager {
     return response.data;
   }
 
+  addToChatHistory(apiaryId, role, text) {
+    if (!this.chatHistories.has(apiaryId)) this.chatHistories.set(apiaryId, []);
+    const history = this.chatHistories.get(apiaryId);
+    history.push({ role, parts: [{ text }], timestamp: new Date().toISOString() });
+    if (history.length > 20) history.splice(0, history.length - 20);
+  }
+
+  buildChatContext(apiaryId) {
+    return this.chatHistories.get(apiaryId) || [];
+  }
+
+  async processUserClarification(apiaryId, clarification) {
+    const conv = this.getConversationDetails(apiaryId);
+    if (!conv) throw new Error('Conversation not found');
+    const cleanClarification = typeof clarification === 'string' ? clarification : clarification?.content || '';
+    this.addToChatHistory(apiaryId, 'user', cleanClarification);
+    try {
+      const result = await this.callApi('text', cleanClarification, null, conv.phone_number);
+      if (!result.success) throw new Error(result.error?.message || 'Clarification failed');
+      const data = result.data;
+      if (data.analysis) {
+        conv.analysis = data.analysis;
+        conv.session_id = data.session_id || conv.session_id;
+        conv.state = data.questions?.length ? CONVERSATION_STATES.AWAITING_CLARIFICATION : CONVERSATION_STATES.ANALYSIS_COMPLETE;
+      }
+      conv.updated_at = new Date().toISOString();
+      this.addToChatHistory(apiaryId, 'model', data.message || 'تم تحديث التحليل');
+      return {
+        needsMoreClarification: !!(data.questions && data.questions.length),
+        questions: data.questions,
+        analysis: data.analysis,
+        message: data.message || MF.inspectionReady(data.analysis)
+      };
+    } catch (error) {
+      conv.state = CONVERSATION_STATES.FAILED;
+      conv.updated_at = new Date().toISOString();
+      throw error.response?.data || error;
+    }
+  }
+
   getConversation(phoneNumber) {
     const cleanNumber = phoneNumber.replace(/[^0-9]/g, '');
     
@@ -56,6 +97,10 @@ export class ConversationManager {
         phone_number: cleanNumber,
         session_id: null,
         state: CONVERSATION_STATES.INITIATED,
+        analysis: null,
+        questions: [],
+        clarifications: [],
+        chat_history: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -85,7 +130,10 @@ export class ConversationManager {
       if (conv) {
         conv.session_id = data.session_id;
         conv.state = CONVERSATION_STATES.ANALYSIS_COMPLETE;
+        conv.analysis = data.analysis || conv.analysis;
         conv.updated_at = new Date().toISOString();
+        this.addToChatHistory(data.session_id || conv.apiary_id, 'user', '[voice message]');
+        this.addToChatHistory(data.session_id || conv.apiary_id, 'model', data.message || 'analysis complete');
       }
 
       let formattedMessage = data.message;
@@ -415,7 +463,8 @@ export class ConversationManager {
     try {
       log.info(`[${cleanNumber}] Processing text: "${text.substring(0, 50)}..."`);
       
-      const result = await this.callApi("text", text, null, phoneNumber);
+      this.addToChatHistory(conv.apiary_id, 'user', text);
+    const result = await this.callApi("text", text, null, phoneNumber);
       
       if (!result.success) {
         throw new Error(result.error?.message || 'Text processing failed');
@@ -428,6 +477,7 @@ export class ConversationManager {
       }
 
       if (data.intent === 'confirm') {
+        this.addToChatHistory(conv.apiary_id, 'model', data.message || MF.inspectionSaved());
         if (conv) {
           conv.state = CONVERSATION_STATES.CONFIRMED;
         }
@@ -442,7 +492,9 @@ export class ConversationManager {
         if (conv) {
           conv.state = CONVERSATION_STATES.ANALYSIS_COMPLETE;
           conv.session_id = data.session_id;
+          conv.analysis = data.analysis || conv.analysis;
         }
+        this.addToChatHistory(conv.apiary_id, 'model', MF.inspectionReady(data.analysis));
         
         log.info(`[${cleanNumber}] Edit completed - Cell: ${data.analysis?.data?.[0]?.cell_id}, Frames: ${data.analysis?.data?.[0]?.frames?.length || 0}`);
         
@@ -454,6 +506,7 @@ export class ConversationManager {
         };
       }
 
+      if (data.message) this.addToChatHistory(conv.apiary_id, 'model', data.message);
       return {
         intent: data.intent,
         message: data.message,
