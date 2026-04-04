@@ -3,6 +3,8 @@
  * Manages WhatsApp conversations - calls Gemini API directly
  */
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { createServiceLogger } from './logger.js';
 import messageFormatter from './message-formatter.js';
@@ -12,8 +14,12 @@ const MF = messageFormatter;
 
 const CONVERSATION_STATES = {
   INITIATED: 'INITIATED',
+  AWAITING_CLARIFICATION: 'AWAITING_CLARIFICATION',
+  ANALYSIS_IN_PROGRESS: 'ANALYSIS_IN_PROGRESS',
   ANALYSIS_COMPLETE: 'ANALYSIS_COMPLETE',
+  AWAITING_CONFIRMATION: 'AWAITING_CONFIRMATION',
   CONFIRMED: 'CONFIRMED',
+  REJECTED: 'REJECTED',
   FAILED: 'FAILED'
 };
 
@@ -23,6 +29,8 @@ export class ConversationManager {
     this.chatHistories = new Map();
     this.geminiUrl = geminiUrl;
     this.apiKey = process.env.GEMINI_ROBOT_API_KEY || 'shared-secret-key';
+    this.storagePath = path.join(process.env.SESSION_SAVE_PATH || '/tmp/whatsapp-sessions', 'conversations.json');
+    this.loadFromStorage();
   }
 
   async callApi(inputType, data, mimeType, phoneNumber) {
@@ -87,6 +95,79 @@ export class ConversationManager {
     }
   }
 
+  loadFromStorage() {
+    try {
+      if (!fs.existsSync(this.storagePath)) return;
+      const raw = fs.readFileSync(this.storagePath, 'utf8');
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed?.conversations)) {
+        parsed.conversations.forEach(conv => this.conversations.set(conv.phone_number, conv));
+      }
+      if (parsed?.chatHistories && typeof parsed.chatHistories === 'object') {
+        Object.entries(parsed.chatHistories).forEach(([k, v]) => this.chatHistories.set(k, v));
+      }
+    } catch (error) {
+      log.warn(`Could not load conversation storage: ${error.message}`);
+    }
+  }
+
+  persistStorage() {
+    try {
+      const dir = path.dirname(this.storagePath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const data = {
+        conversations: Array.from(this.conversations.values()),
+        chatHistories: Object.fromEntries(this.chatHistories.entries())
+      };
+      fs.writeFileSync(this.storagePath, JSON.stringify(data, null, 2));
+    } catch (error) {
+      log.warn(`Could not persist conversation storage: ${error.message}`);
+    }
+  }
+
+  async processClarificationAudio(apiaryId, audioBase64) {
+    const conv = this.getConversationDetails(apiaryId);
+    if (!conv) throw new Error('Conversation not found');
+    this.addToChatHistory(apiaryId, 'user', '[audio clarification]');
+    const result = await this.callApi('audio', audioBase64, 'audio/webm', conv.phone_number);
+    if (!result.success) throw new Error(result.error?.message || 'Clarification audio failed');
+    const data = result.data;
+    conv.analysis = data.analysis || conv.analysis;
+    conv.session_id = data.session_id || conv.session_id;
+    conv.state = data.questions?.length ? CONVERSATION_STATES.AWAITING_CLARIFICATION : CONVERSATION_STATES.ANALYSIS_COMPLETE;
+    conv.updated_at = new Date().toISOString();
+    this.addToChatHistory(apiaryId, 'model', data.message || MF.inspectionReady(data.analysis, data.transcription));
+    this.persistStorage();
+    return {
+      transcription: data.transcription,
+      updatedAnalysis: data.analysis,
+      needsMoreClarification: !!(data.questions && data.questions.length),
+      questions: data.questions,
+      message: data.message || MF.inspectionReady(data.analysis, data.transcription)
+    };
+  }
+
+  async modifyAnalysis(currentAnalysis, clarification, chatHistory = []) {
+    const prompt = `التحليل الحالي:
+${JSON.stringify(currentAnalysis, null, 2)}
+
+تعديل المستخدم:
+${clarification}
+
+سجل المحادثة:
+${JSON.stringify(chatHistory, null, 2)}
+
+الرجاء إعادة كتابة JSON فقط.`;
+    const result = await this.callApi('text', prompt, null, '');
+    if (!result.success) throw new Error(result.error?.message || 'modifyAnalysis failed');
+    return {
+      updatedAnalysis: result.data.analysis || currentAnalysis,
+      needsMoreClarification: !!(result.data.questions && result.data.questions.length),
+      questions: result.data.questions
+    };
+  }
+
   getConversation(phoneNumber) {
     const cleanNumber = phoneNumber.replace(/[^0-9]/g, '');
     
@@ -106,6 +187,7 @@ export class ConversationManager {
       };
 
       this.conversations.set(cleanNumber, newConversation);
+      this.persistStorage();
       log.info(`New conversation created: ${apiaryId} for ${cleanNumber}`);
     }
 
@@ -132,8 +214,9 @@ export class ConversationManager {
         conv.state = CONVERSATION_STATES.ANALYSIS_COMPLETE;
         conv.analysis = data.analysis || conv.analysis;
         conv.updated_at = new Date().toISOString();
-        this.addToChatHistory(data.session_id || conv.apiary_id, 'user', '[voice message]');
-        this.addToChatHistory(data.session_id || conv.apiary_id, 'model', data.message || 'analysis complete');
+        this.addToChatHistory(conv.apiary_id, 'user', '[voice message]');
+        this.addToChatHistory(conv.apiary_id, 'model', data.message || 'analysis complete');
+        this.persistStorage();
       }
 
       let formattedMessage = data.message;
@@ -155,6 +238,7 @@ export class ConversationManager {
         conv.state = CONVERSATION_STATES.FAILED;
         conv.updated_at = new Date().toISOString();
       }
+      this.persistStorage();
       // Pass the full error object to preserve response data
       throw error.response?.data || error;
     }
@@ -475,11 +559,13 @@ export class ConversationManager {
       if (conv) {
         conv.updated_at = new Date().toISOString();
       }
+      this.persistStorage();
 
       if (data.intent === 'confirm') {
         this.addToChatHistory(conv.apiary_id, 'model', data.message || MF.inspectionSaved());
         if (conv) {
           conv.state = CONVERSATION_STATES.CONFIRMED;
+          this.persistStorage();
         }
         return {
           intent: data.intent,
@@ -493,6 +579,7 @@ export class ConversationManager {
           conv.state = CONVERSATION_STATES.ANALYSIS_COMPLETE;
           conv.session_id = data.session_id;
           conv.analysis = data.analysis || conv.analysis;
+          this.persistStorage();
         }
         this.addToChatHistory(conv.apiary_id, 'model', MF.inspectionReady(data.analysis));
         
@@ -507,6 +594,7 @@ export class ConversationManager {
       }
 
       if (data.message) this.addToChatHistory(conv.apiary_id, 'model', data.message);
+      this.persistStorage();
       return {
         intent: data.intent,
         message: data.message,
@@ -522,6 +610,8 @@ export class ConversationManager {
   deleteConversation(phoneNumber) {
     const cleanNumber = phoneNumber.replace(/[^0-9]/g, '');
     this.conversations.delete(cleanNumber);
+    this.chatHistories.delete(cleanNumber);
+    this.persistStorage();
     log.info(`Conversation deleted for: ${cleanNumber}`);
   }
 
