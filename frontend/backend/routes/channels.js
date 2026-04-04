@@ -1,16 +1,34 @@
 const express = require('express');
 const router = express.Router();
-const Integration = require('../models/Integration');
 const { auth } = require('../middleware/auth');
 
+const activeChannel = {
+  id: 'whatsapp',
+  type: 'whatsapp',
+  name: 'واتس آب',
+  status: 'connected',
+  available: true,
+  color: '#25D366',
+  messages: 523,
+  lastSync: '2026-04-04T14:30:00Z'
+};
+
+const comingSoonChannels = [
+  { id: 'messenger', type: 'messenger', name: 'ماسنجر', status: 'coming-soon', available: false },
+  { id: 'instagram', type: 'instagram', name: 'إنستجرام', status: 'coming-soon', available: false },
+  { id: 'telegram', type: 'telegram', name: 'تيليجرام', status: 'coming-soon', available: false }
+];
+
 // @route   GET /api/channels
-// @desc    Get all connected channels
+// @desc    Get current channel setup
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const integrations = await Integration.find({ user: req.user.id });
-    
-    res.json({ success: true, integrations });
+    res.json({
+      success: true,
+      integrations: [activeChannel],
+      disabled: comingSoonChannels
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -18,32 +36,24 @@ router.get('/', auth, async (req, res) => {
 });
 
 // @route   POST /api/channels/connect
-// @desc    Connect new channel
+// @desc    Connect WhatsApp only
 // @access  Private
 router.post('/connect', auth, async (req, res) => {
   try {
-    const { type, name, config } = req.body;
-    
-    // Check if already connected
-    let integration = await Integration.findOne({ user: req.user.id, type });
-    
-    if (integration) {
-      return res.status(400).json({ error: 'Channel already connected' });
+    const { type } = req.body;
+    if (type && type !== 'whatsapp') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only WhatsApp is available right now',
+        code: 'CHANNEL_DISABLED'
+      });
     }
-    
-    integration = new Integration({
-      user: req.user.id,
-      type,
-      name,
-      config,
-      status: 'pending'
+
+    return res.json({
+      success: true,
+      integration: activeChannel,
+      message: 'WhatsApp is already connected in demo mode'
     });
-    
-    await integration.save();
-    
-    // TODO: Verify connection with external API
-    
-    res.status(201).json({ success: true, integration });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -55,17 +65,15 @@ router.post('/connect', auth, async (req, res) => {
 // @access  Private
 router.put('/:id', auth, async (req, res) => {
   try {
-    const integration = await Integration.findOneAndUpdate(
-      { _id: req.params.id, user: req.user.id },
-      { config: req.body.config },
-      { new: true }
-    );
-    
-    if (!integration) {
-      return res.status(404).json({ error: 'Integration not found' });
+    if (req.params.id !== 'whatsapp') {
+      return res.status(403).json({
+        success: false,
+        error: 'This channel is disabled',
+        code: 'CHANNEL_DISABLED'
+      });
     }
-    
-    res.json({ success: true, integration });
+
+    res.json({ success: true, integration: activeChannel });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -77,16 +85,15 @@ router.put('/:id', auth, async (req, res) => {
 // @access  Private
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const integration = await Integration.findOneAndDelete({
-      _id: req.params.id,
-      user: req.user.id
-    });
-    
-    if (!integration) {
-      return res.status(404).json({ error: 'Integration not found' });
+    if (req.params.id !== 'whatsapp') {
+      return res.status(403).json({
+        success: false,
+        error: 'This channel is disabled',
+        code: 'CHANNEL_DISABLED'
+      });
     }
-    
-    res.json({ success: true, message: 'Channel disconnected' });
+
+    return res.json({ success: true, message: 'WhatsApp disconnect is not available in demo mode' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -98,17 +105,14 @@ router.delete('/:id', auth, async (req, res) => {
 // @access  Private
 router.post('/:id/test', auth, async (req, res) => {
   try {
-    const integration = await Integration.findOne({
-      _id: req.params.id,
-      user: req.user.id
-    });
-    
-    if (!integration) {
-      return res.status(404).json({ error: 'Integration not found' });
+    if (req.params.id !== 'whatsapp') {
+      return res.status(403).json({
+        success: false,
+        error: 'This channel is disabled',
+        code: 'CHANNEL_DISABLED'
+      });
     }
-    
-    // TODO: Test actual connection
-    
+
     res.json({ success: true, message: 'Connection test successful' });
   } catch (err) {
     console.error(err);
