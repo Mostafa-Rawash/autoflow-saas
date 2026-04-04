@@ -10,11 +10,10 @@ const Team = () => {
         </div>
         <h1 className="text-2xl font-bold mb-2">الفريق</h1>
         <p className="text-gray-400 mb-4">
-          هذه الميزة قيد التطوير وستكون متاحة قريباً!
+          هذه الميزة قيد التطوير وستكون متاحة قريباً.
         </p>
         <span className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 text-gray-400 rounded-full text-sm">
-          <Sparkles className="w-4 h-4" />
-          قريباً
+          <Sparkles className="w-4 h-4" /> قريباً
         </span>
       </div>
     </div>

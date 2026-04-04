@@ -127,7 +127,7 @@ function generatePricingPage(lang) {
         <div class="card-tech rounded-2xl p-6 md:p-8 ${textAlign}">
           <h3 class="text-xl font-bold mb-1">${t.starter}</h3>
           <p class="text-gray-400 text-sm mb-6">${t.starterDesc}</p>
-          <div class="mb-6"><span class="text-4xl font-black gradient-text monthly">499</span><span class="text-4xl font-black gradient-text yearly hidden">399</span><span class="text-gray-400 text-sm"> ${isRTL ? 'ج.م/شهر' : 'EGP/month'}</span></div>
+          <div class="mb-6"><span class="text-4xl font-black gradient-text monthly">2,000</span><span class="text-4xl font-black gradient-text yearly hidden">20,000</span><span class="text-gray-400 text-sm"> ${isRTL ? 'ج.م/شهر' : 'EGP/month'}</span></div>
           <ul class="space-y-3 mb-8 text-sm">${t.starterFeatures.map(f => `<li class="flex items-center gap-3 ${flexDir}"><span class="w-5 h-5 rounded bg-[#00D4AA]/20 flex items-center justify-center"><span class="text-[#00D4AA] text-xs">✓</span></span><span class="text-gray-300">${f}</span></li>`).join('')}</ul>
           <a href="mailto:mostafa@rawash.com" class="btn-outline block w-full text-center px-6 py-3 rounded-xl font-semibold">${t.getStarted}</a>
         </div>
@@ -136,7 +136,7 @@ function generatePricingPage(lang) {
           <div class="absolute -top-3 ${alignEnd} bg-gradient-to-r from-[#00D4AA] to-[#7C3AED] px-4 py-1 rounded-full text-xs font-bold">${t.popular}</div>
           <h3 class="text-xl font-bold mb-1">${t.professional}</h3>
           <p class="text-gray-400 text-sm mb-6">${t.proDesc}</p>
-          <div class="mb-6"><span class="text-4xl font-black gradient-text monthly">1,299</span><span class="text-4xl font-black gradient-text yearly hidden">999</span><span class="text-gray-400 text-sm"> ${isRTL ? 'ج.م/شهر' : 'EGP/month'}</span></div>
+          <div class="mb-6"><span class="text-4xl font-black gradient-text monthly">4,000</span><span class="text-4xl font-black gradient-text yearly hidden">40,000</span><span class="text-gray-400 text-sm"> ${isRTL ? 'ج.م/شهر' : 'EGP/month'}</span></div>
           <ul class="space-y-3 mb-8 text-sm">${t.proFeatures.map(f => `<li class="flex items-center gap-3 ${flexDir}"><span class="w-5 h-5 rounded bg-[#00D4AA]/20 flex items-center justify-center"><span class="text-[#00D4AA] text-xs">✓</span></span><span class="text-gray-300">${f}</span></li>`).join('')}</ul>
           <a href="mailto:mostafa@rawash.com" class="btn-gradient block w-full text-center px-6 py-3 rounded-xl font-semibold text-white">${t.getStarted}</a>
         </div>
