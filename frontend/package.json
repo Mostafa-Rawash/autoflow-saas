@@ -1,0 +1,25 @@
+{
+  "name": "autoflow-saas",
+  "version": "1.0.0",
+  "description": "AutoFlow - Multi-channel Communication Platform SaaS",
+  "private": true,
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm start",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "build:frontend": "cd frontend && npm run build"
+  },
+  "keywords": [
+    "saas",
+    "whatsapp",
+    "messenger",
+    "instagram",
+    "telegram",
+    "communication",
+    "automation",
+    "chatbot",
+    "mern"
+  ],
+  "author": "Mostafa Rawash",
+  "license": "MIT"
+}

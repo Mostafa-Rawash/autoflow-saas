@@ -1,0 +1,55 @@
+{
+  "type": "object",
+  "properties": {
+    "apiary_id": { "type": "string" },
+    "inspection_date": { "type": "string" },
+    "cell_id": { "type": "string" },
+    "total_frames": { "type": "integer" },
+    "description": { "type": "string" },
+    "queen_status": { "type": "string", "enum": ["present", "absent", "unknown"] },
+    "overall_health": { "type": "string", "enum": ["good", "warning", "poor"] },
+    "frames": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "frame_number": { "type": "integer" },
+          "honey": { 
+            "type": "array", 
+            "items": { "type": "string", "enum": ["0", "1", "2", "3"] },
+            "minItems": 1
+          },
+          "eggs": { 
+            "type": "array", 
+            "items": { "type": "string", "enum": ["0", "1", "2", "3"] },
+            "minItems": 1
+          },
+          "brood": {
+            "type": "object",
+            "properties": {
+              "open": {
+                "type": "array",
+                "items": { "type": "string", "enum": ["0", "1"] },
+                "minItems": 1
+              },
+              "sealed": {
+                "type": "array",
+                "items": { "type": "string", "enum": ["0", "1"] },
+                "minItems": 1
+              }
+            }
+          },
+          "pollen": { 
+            "type": "array", 
+            "items": { "type": "string", "enum": ["0", "1", "2", "3"] },
+            "minItems": 1
+          },
+          "empty_frame": { "type": "boolean" },
+          "notes": { "type": "string" }
+        },
+        "required": ["frame_number", "honey", "eggs", "brood", "pollen", "empty_frame", "notes"]
+      }
+    }
+  },
+  "required": ["apiary_id", "inspection_date", "cell_id", "total_frames", "description", "queen_status", "overall_health", "frames"]
+}

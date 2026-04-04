@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+.pnp
+.yarn/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# Session files
+sessions/
+*.wwebjs_auth/
+*.wwebjs_cache/
+
+# Puppeteer user data
+whatsapp-user-data/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,325 @@
+{
+  "info": {
+    "name": "Gemini Robot API",
+    "description": "AI-powered beekeeping inspection API - processes audio/text and extracts structured hive data",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001"
+    },
+    {
+      "key": "databaseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "phoneNumber",
+      "value": "+1234567890"
+    },
+    {
+      "key": "apiKey",
+      "value": "shared-secret-key"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health",
+        "description": "Check service health and database connection"
+      }
+    },
+    {
+      "name": "Analyze Audio",
+      "item": [
+        {
+          "name": "New Audio Analysis",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/analyze",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input\": {\n    \"type\": \"audio\",\n    \"data\": \"BASE64_AUDIO_DATA\",\n    \"mime_type\": \"audio/webm\"\n  },\n  \"phone_number\": \"{{phoneNumber}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Submit new audio for analysis - creates new session"
+          }
+        },
+        {
+          "name": "Update Audio (Continue Session)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/analyze",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input\": {\n    \"type\": \"audio\",\n    \"data\": \"BASE64_AUDIO_DATA\",\n    \"mime_type\": \"audio/webm\"\n  },\n  \"phone_number\": \"{{phoneNumber}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Submit additional audio to update existing session"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analyze Text",
+      "item": [
+        {
+          "name": "New Text Analysis",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/analyze",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input\": {\n    \"type\": \"text\",\n    \"data\": \"Hive 5 has 3 frames with honey and eggs, queen is present\"\n  },\n  \"phone_number\": \"{{phoneNumber}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Submit text for analysis - creates new session"
+          }
+        },
+        {
+          "name": "Confirm Analysis",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/analyze",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input\": {\n    \"type\": \"text\",\n    \"data\": \"yes\"\n  },\n  \"phone_number\": \"{{phoneNumber}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Confirm and save the current analysis to database"
+          }
+        },
+        {
+          "name": "Edit Analysis",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/analyze",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input\": {\n    \"type\": \"text\",\n    \"data\": \"change hive number to 7\"\n  },\n  \"phone_number\": \"{{phoneNumber}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Modify the current analysis with specific changes"
+          }
+        },
+        {
+          "name": "Cancel Session",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/analyze",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input\": {\n    \"type\": \"text\",\n    \"data\": \"cancel\"\n  },\n  \"phone_number\": \"{{phoneNumber}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Cancel and delete the current session"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Database Service - Sessions",
+      "description": "Session persistence endpoints (saved automatically by Gemini Robot)",
+      "item": [
+        {
+          "name": "Save Session",
+          "request": {
+            "method": "POST",
+            "url": "{{databaseUrl}}/api/sessions",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"session_id\": \"sess_1234567890_abc123\",\n  \"phone_number\": \"{{phoneNumber}}\",\n  \"apiary_id\": \"1\",\n  \"state\": \"completed\",\n  \"analysis\": {\n    \"apiary_id\": \"1\",\n    \"inspection_date\": \"2026-04-02T10:00:00.000Z\",\n    \"data\": [\n      {\n        \"cell_id\": \"5\",\n        \"total_frames\": 3,\n        \"frames\": [\n          {\n            \"frame_number\": 1,\n            \"honey\": [\"2\"],\n            \"eggs\": [\"1\"],\n            \"brood\": {\n              \"open\": [\"1\"],\n              \"sealed\": [\"0\"]\n            },\n            \"pollen\": [],\n            \"empty_frame\": false,\n            \"notes\": \"Honey and eggs in frame 1\"\n          }\n        ],\n        \"description\": \"Hive inspection with honey and eggs\"\n      }\n    ],\n    \"metadata\": {\n      \"queen_status\": \"present\",\n      \"overall_health\": \"good\",\n      \"alerts\": []\n    }\n  },\n  \"transcription\": \"Hive 5 has 3 frames with honey and eggs\",\n  \"metadata\": {\n    \"queen_status\": \"present\",\n    \"overall_health\": \"good\",\n    \"alerts\": []\n  },\n  \"conversation_history\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"[audio file attached]\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"Analysis complete\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"yes\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"Inspection saved successfully!\"\n    }\n  ],\n  \"created_at\": \"2026-04-02T10:00:00.000Z\",\n  \"updated_at\": \"2026-04-02T10:05:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Save session to database - automatically triggered by Gemini Robot on:\n- Confirm: state='completed'\n- Cancel: state='cancelled'\n- Timeout: state='expired'"
+          }
+        },
+        {
+          "name": "Get Session",
+          "request": {
+            "method": "GET",
+            "url": "{{databaseUrl}}/api/sessions/:sessionId",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "description": "Retrieve a specific session by ID"
+          }
+        },
+        {
+          "name": "List Sessions by Phone",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{databaseUrl}}/api/sessions?phone_number={{phoneNumber}}",
+              "host": ["{{databaseUrl}}"],
+              "path": ["api", "sessions"],
+              "query": [
+                {
+                  "key": "phone_number",
+                  "value": "{{phoneNumber}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "description": "List all sessions for a phone number"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Database Service - Inspections",
+      "description": "Inspection persistence endpoints (saved automatically on confirm)",
+      "item": [
+        {
+          "name": "Save Inspection",
+          "request": {
+            "method": "POST",
+            "url": "{{databaseUrl}}/api/inspections",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"apiary_id\": \"1\",\n  \"inspection_data\": {\n    \"apiary_id\": \"1\",\n    \"inspection_date\": \"2026-04-02T10:00:00.000Z\",\n    \"data\": [\n      {\n        \"cell_id\": \"5\",\n        \"total_frames\": 3,\n        \"frames\": [\n          {\n            \"frame_number\": 1,\n            \"honey\": [\"2\"],\n            \"eggs\": [\"1\"],\n            \"brood\": {\n              \"open\": [\"1\"],\n              \"sealed\": [\"0\"]\n            },\n            \"pollen\": [],\n            \"empty_frame\": false,\n            \"notes\": \"Honey and eggs in frame 1\"\n          }\n        ],\n        \"description\": \"Hive inspection with honey and eggs\"\n      }\n    ],\n    \"metadata\": {\n      \"queen_status\": \"present\",\n      \"overall_health\": \"good\",\n      \"alerts\": []\n    }\n  },\n  \"transcription\": \"Hive 5 has 3 frames with honey and eggs\",\n  \"phone_number\": \"{{phoneNumber}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Save inspection to database - automatically triggered by Gemini Robot on confirm"
+          }
+        },
+        {
+          "name": "Get Inspection",
+          "request": {
+            "method": "GET",
+            "url": "{{databaseUrl}}/api/inspections/:inspectionId",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "description": "Retrieve a specific inspection by ID"
+          }
+        },
+        {
+          "name": "List Inspections by Apiary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{databaseUrl}}/api/inspections?apiary_id=1",
+              "host": ["{{databaseUrl}}"],
+              "path": ["api", "inspections"],
+              "query": [
+                {
+                  "key": "apiary_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "description": "List all inspections for an apiary"
+          }
+        }
+      ]
+    }
+  ]
+}

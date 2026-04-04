@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a2e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #00D4AA;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00aa88;
+}
+
+/* Glass morphism */
+.glass {
+  @apply bg-white/5 backdrop-blur-xl border border-white/10;
+}
+
+.glass-dark {
+  @apply bg-dark-800/80 backdrop-blur-xl border border-white/5;
+}
+
+/* Gradient text */
+.gradient-text {
+  @apply bg-gradient-to-r from-whatsapp to-primary-500 bg-clip-text text-transparent;
+}
+
+/* Buttons */
+.btn-primary {
+  @apply bg-gradient-to-r from-whatsapp to-primary-500 text-white font-semibold py-2 px-4 rounded-lg hover:shadow-lg hover:shadow-primary-500/20 transition-all duration-300;
+}
+
+.btn-secondary {
+  @apply border border-primary-500/40 text-gray-300 font-semibold py-2 px-4 rounded-lg hover:bg-primary-500/10 transition-all duration-300;
+}
+
+/* Cards */
+.card {
+  @apply bg-dark-900 rounded-xl border border-dark-700 hover:border-primary-500/20 transition-all duration-300;
+}
+
+.card-hover {
+  @apply hover:shadow-lg hover:shadow-primary-500/10 hover:-translate-y-1;
+}
+
+/* Channel colors */
+.channel-whatsapp { @apply text-whatsapp; }
+.channel-messenger { @apply text-messenger; }
+.channel-instagram { @apply text-instagram; }
+.channel-telegram { @apply text-telegram; }
+
+/* Status indicators */
+.status-active {
+  @apply bg-green-500/20 text-green-400 border-green-500/30;
+}
+
+.status-pending {
+  @apply bg-yellow-500/20 text-yellow-400 border-yellow-500/30;
+}
+
+.status-resolved {
+  @apply bg-blue-500/20 text-blue-400 border-blue-500/30;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* RTL support */
+[dir="rtl"] {
+  font-family: 'Cairo', sans-serif;
+}

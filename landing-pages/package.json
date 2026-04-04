@@ -1,0 +1,29 @@
+{
+  "name": "@ensoulify/whatsapp-landing-pages",
+  "version": "1.0.0",
+  "description": "WhatsApp Customer Support Automation Landing Page Generator for Multiple Business Niches - Ensoulify.com",
+  "main": "build.js",
+  "scripts": {
+    "build": "node build.js",
+    "serve": "npx serve dist",
+    "dev": "node build.js && npx serve dist"
+  },
+  "keywords": [
+    "whatsapp",
+    "automation",
+    "landing-page",
+    "saas",
+    "egypt",
+    "mena",
+    "ensoulify"
+  ],
+  "author": "Mostafa Rawash <mostafa@rawash.com>",
+  "license": "ISC",
+  "homepage": "https://ensoulify.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ensoulify/whatsapp-landing-pages"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

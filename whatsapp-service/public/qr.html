@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp QR Code Authentication</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: #25d366;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .qr-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            min-height: 250px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+        
+        .qr-code img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 14px;
+            display: inline-block;
+        }
+        
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status.waiting {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .instructions {
+            margin-top: 30px;
+            padding: 20px;
+            background: #e7f3ff;
+            border-radius: 10px;
+            text-align: left;
+        }
+        
+        .instructions h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .instructions ol {
+            padding-left: 20px;
+            color: #555;
+            line-height: 1.8;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .refresh-btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: #25d366;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            background: #128c7e;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(37, 211, 102, 0.3);
+        }
+
+        .refresh-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .refresh-btn.secondary {
+            background: #6c757d;
+        }
+
+        .refresh-btn.secondary:hover {
+            background: #5a6268;
+        }
+
+        .message-box {
+            margin-top: 15px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .message-box.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .message-box.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .message-box.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #25d366;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #999;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">💬</div>
+        <h1>WhatsApp Authentication</h1>
+        <p class="subtitle">Scan the QR code with your WhatsApp mobile app</p>
+        
+        <div class="qr-container">
+            <div id="qr-loading" class="spinner"></div>
+            <div id="qr-code" class="qr-code hidden"></div>
+            <div id="qr-placeholder" class="hidden">
+                <p style="color: #666; font-size: 16px;">Waiting for QR code...</p>
+            </div>
+            <div id="message-box" class="message-box hidden"></div>
+        </div>
+  
+        <div id="status" class="status waiting">Waiting for connection...</div>
+
+        <div class="instructions">
+            <h3>How to connect:</h3>
+            <ol>
+                <li>Open WhatsApp on your phone</li>
+                <li>Tap Menu (⋮) or Settings (⚙️)</li>
+                <li>Select "Linked Devices"</li>  
+                <li>Tap "Link a Device"</li>
+                <li>Point your camera at the QR code above</li>
+            </ol>
+        </div>
+
+        <button class="refresh-btn" onclick="requestNewQR()" id="new-qr-btn">Request New QR Code</button>
+        <button class="refresh-btn secondary" onclick="location.reload()">Refresh Page</button>
+        
+        <div class="footer">
+            <p>WhatsApp Web.js Service • Port 3002</p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        let checkInterval;
+        
+        async function fetchQRCode() {
+            try {
+                const response = await fetch('/api/qr');
+                const data = await response.json();
+
+                if (data.success) {
+                    if (data.data.connected) {
+                        showConnected();
+                    } else if (data.data.qr) {
+                        showQRCode(data.data.qr);
+                    } else {
+                        showWaiting(data.data.message || 'QR code not available yet. Please wait or request a new one.');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch QR code:', error);
+                showWaiting('Failed to fetch QR code. Please try again.');
+            }
+        }
+
+        async function requestNewQR() {
+            const btn = document.getElementById('new-qr-btn');
+            btn.disabled = true;
+            btn.textContent = 'Requesting...';
+
+            try {
+                const response = await fetch('/api/qr/refresh', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.success) {
+                    showWaiting('New QR code requested. Please wait...');
+                } else {
+                    showWaiting(data.error?.message || 'Failed to request new QR code');
+                }
+            } catch (error) {
+                console.error('Error requesting new QR:', error);
+                showWaiting('Error requesting new QR code. Please refresh the page.');
+            } finally {
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'Request New QR Code';
+                }, 5000);
+            }
+        }
+        
+        function showQRCode(qrText) {
+            const qrContainer = document.getElementById('qr-code');
+            const loading = document.getElementById('qr-loading');
+            const placeholder = document.getElementById('qr-placeholder');
+            const status = document.getElementById('status');
+            const messageBox = document.getElementById('message-box');
+
+            loading.classList.add('hidden');
+            placeholder.classList.add('hidden');
+            messageBox.classList.add('hidden');
+            qrContainer.classList.remove('hidden');
+
+            // Clear previous QR code
+            qrContainer.innerHTML = '';
+
+            // Generate new QR code
+            new QRCode(qrContainer, {
+                text: qrText,
+                width: 200,
+                height: 200,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            status.textContent = 'Scan QR code with WhatsApp';
+            status.className = 'status waiting';
+        }
+        
+        function showConnected() {
+            const qrContainer = document.getElementById('qr-code');
+            const loading = document.getElementById('qr-loading');
+            const placeholder = document.getElementById('qr-placeholder');
+            const status = document.getElementById('status');
+            const messageBox = document.getElementById('message-box');
+
+            loading.classList.add('hidden');
+            placeholder.classList.add('hidden');
+            messageBox.classList.add('hidden');
+            qrContainer.classList.remove('hidden');
+            qrContainer.innerHTML = '<div style="font-size: 60px; color: #25d366;">✓</div><p style="margin-top: 10px; color: #25d366; font-weight: bold;">Connected!</p>';
+
+            status.textContent = 'WhatsApp Connected';
+            status.className = 'status connected';
+
+            // Stop checking once connected
+            if (checkInterval) {
+                clearInterval(checkInterval);
+            }
+        }
+        
+        function showWaiting(message) {
+            const qrContainer = document.getElementById('qr-code');
+            const loading = document.getElementById('qr-loading');
+            const placeholder = document.getElementById('qr-placeholder');
+            const status = document.getElementById('status');
+            const messageBox = document.getElementById('message-box');
+
+            loading.classList.remove('hidden');
+            qrContainer.classList.add('hidden');
+            placeholder.classList.add('hidden');
+
+            if (message) {
+                messageBox.textContent = message;
+                messageBox.className = 'message-box info';
+                messageBox.classList.remove('hidden');
+            } else {
+                messageBox.classList.add('hidden');
+            }
+
+            status.textContent = 'Waiting for QR code...';
+            status.className = 'status waiting';
+        }
+        
+        function showDisconnected() {
+            const status = document.getElementById('status');
+            status.textContent = 'Disconnected';
+            status.className = 'status disconnected';
+        }
+        
+        // Initial fetch
+        fetchQRCode();
+        
+        // Poll for updates every 5 seconds
+        checkInterval = setInterval(fetchQRCode, 5000);
+    </script>
+</body>
+</html>
