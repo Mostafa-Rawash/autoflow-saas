@@ -16,6 +16,7 @@ import Team from './pages/Team';
 import Subscription from './pages/Subscription';
 import WhatsAppConnect from './pages/WhatsAppConnect';
 import AutoReplies from './pages/AutoReplies';
+import Onboarding from './pages/Onboarding';
 
 // Protected Route
 const ProtectedRoute = ({ children }) => {
@@ -105,6 +106,7 @@ function App() {
           <Route path="team" element={<Team />} />
           <Route path="subscription" element={<Subscription />} />
           <Route path="auto-replies" element={<AutoReplies />} />
+          <Route path="onboarding" element={<Onboarding />} />
         </Route>
         
         {/* 404 */}
