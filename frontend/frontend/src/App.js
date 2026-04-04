@@ -15,6 +15,7 @@ import Settings from './pages/Settings';
 import Team from './pages/Team';
 import Subscription from './pages/Subscription';
 import WhatsAppConnect from './pages/WhatsAppConnect';
+import AutoReplies from './pages/AutoReplies';
 
 // Protected Route
 const ProtectedRoute = ({ children }) => {
@@ -103,6 +104,7 @@ function App() {
           <Route path="settings" element={<Settings />} />
           <Route path="team" element={<Team />} />
           <Route path="subscription" element={<Subscription />} />
+          <Route path="auto-replies" element={<AutoReplies />} />
         </Route>
         
         {/* 404 */}

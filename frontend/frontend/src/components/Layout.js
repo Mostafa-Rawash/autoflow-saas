@@ -11,13 +11,15 @@ import {
   LogOut,
   Menu,
   X,
-  Lock
+  Lock,
+  Zap
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 
 const menuItems = [
   { path: '/', icon: BarChart3, label: 'لوحة التحكم', available: true },
   { path: '/conversations', icon: MessageSquare, label: 'المحادثات', available: true },
+  { path: '/auto-replies', icon: Zap, label: 'الردود التلقائية', available: true },
   { path: '/templates', icon: FileText, label: 'القوالب', available: false },
   { path: '/channels', icon: Radio, label: 'القنوات', available: true },
   { path: '/analytics', icon: BarChart3, label: 'التحليلات', available: false },
