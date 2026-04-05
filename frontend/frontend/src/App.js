@@ -17,6 +17,7 @@ import Subscription from './pages/Subscription';
 import WhatsAppConnect from './pages/WhatsAppConnect';
 import AutoReplies from './pages/AutoReplies';
 import Onboarding from './pages/Onboarding';
+import SystemHealth from './pages/SystemHealth';
 
 // Admin Pages
 import {
@@ -141,6 +142,7 @@ function App() {
           <Route path="subscription" element={<Subscription />} />
           <Route path="auto-replies" element={<AutoReplies />} />
           <Route path="onboarding" element={<Onboarding />} />
+          <Route path="system-health" element={<SystemHealth />} />
           
           {/* Admin Routes */}
           <Route path="admin" element={<AdminDashboard />} />
