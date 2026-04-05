@@ -24,6 +24,7 @@
     "type": "git",
     "url": "https://github.com/ensoulify/whatsapp-landing-pages"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "express": "^5.2.1"
+  }
 }
