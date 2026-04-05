@@ -20,9 +20,8 @@
     "deploy:production": "./scripts/deploy.sh production",
     "lint": "npx eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "npx prettier --write .",
-    "build": "npm run build:frontend && npm run build:landing",
-    "build:frontend": "cd frontend/frontend && npm run build",
-    "build:landing": "cd landing-pages && node build.js"
+    "build": "npm run build:frontend",
+    "build:frontend": "cd frontend/frontend && npm run build"
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",

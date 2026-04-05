@@ -9,11 +9,11 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a2e;
+  background: #f5f5f5;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #00D4AA;
+  background: #00d4aa;
   border-radius: 3px;
 }
 
@@ -23,11 +23,11 @@
 
 /* Glass morphism */
 .glass {
-  @apply bg-white/5 backdrop-blur-xl border border-white/10;
+  @apply bg-white/80 backdrop-blur-xl border border-gray-200/50;
 }
 
 .glass-dark {
-  @apply bg-dark-800/80 backdrop-blur-xl border border-white/5;
+  @apply bg-white/90 backdrop-blur-xl border border-gray-200/30;
 }
 
 /* Gradient text */
@@ -41,12 +41,12 @@
 }
 
 .btn-secondary {
-  @apply border border-primary-500/40 text-gray-300 font-semibold py-2 px-4 rounded-lg hover:bg-primary-500/10 transition-all duration-300;
+  @apply border border-primary-500/40 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-primary-500/10 transition-all duration-300;
 }
 
 /* Cards */
 .card {
-  @apply bg-dark-900 rounded-xl border border-dark-700 hover:border-primary-500/20 transition-all duration-300;
+  @apply bg-white rounded-xl border border-gray-200 hover:border-primary-500/30 transition-all duration-300 shadow-sm;
 }
 
 .card-hover {
@@ -54,10 +54,18 @@
 }
 
 /* Channel colors */
-.channel-whatsapp { @apply text-whatsapp; }
-.channel-messenger { @apply text-messenger; }
-.channel-instagram { @apply text-instagram; }
-.channel-telegram { @apply text-telegram; }
+.channel-whatsapp {
+  @apply text-whatsapp;
+}
+.channel-messenger {
+  @apply text-messenger;
+}
+.channel-instagram {
+  @apply text-instagram;
+}
+.channel-telegram {
+  @apply text-telegram;
+}
 
 /* Status indicators */
 .status-active {
@@ -74,8 +82,13 @@
 
 /* Animations */
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .animate-float {
@@ -84,5 +97,5 @@
 
 /* RTL support */
 [dir="rtl"] {
-  font-family: 'Cairo', sans-serif;
+  font-family: "Cairo", sans-serif;
 }

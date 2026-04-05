@@ -18,13 +18,11 @@ NC='\033[0m'
 # Ports
 BACKEND_PORT=5000
 FRONTEND_PORT=3001
-LANDING_PORT=8080
 WHATSAPP_PORT=3002
 
 # Directories
 BACKEND_DIR="./frontend/backend"
 FRONTEND_DIR="./frontend/frontend"
-LANDING_DIR="./landing-pages"
 WHATSAPP_DIR="./whatsapp-service"
 
 echo -e "${BLUE}AutoFlow Process Manager${NC}"
@@ -71,14 +69,6 @@ status() {
         echo -e "Frontend Dashboard (:$FRONTEND_PORT): ${RED}❌ Stopped${NC}"
     fi
     
-    # Landing Pages
-    if check_port $LANDING_PORT; then
-        pid=$(get_port_process $LANDING_PORT)
-        echo -e "Landing Pages (:$LANDING_PORT): ${GREEN}✅ Running${NC} (PID: $pid)"
-    else
-        echo -e "Landing Pages (:$LANDING_PORT): ${RED}❌ Stopped${NC}"
-    fi
-    
     # WhatsApp Service
     if check_port $WHATSAPP_PORT; then
         pid=$(get_port_process $WHATSAPP_PORT)
@@ -108,21 +98,17 @@ start() {
         frontend|dashboard)
             start_frontend
             ;;
-        landing)
-            start_landing
-            ;;
         whatsapp)
             start_whatsapp
             ;;
         all)
             start_backend
             start_frontend
-            start_landing
             start_whatsapp
             ;;
         *)
             echo "Unknown service: $SERVICE"
-            echo "Usage: $0 start [backend|frontend|landing|whatsapp|all]"
+            echo "Usage: $0 start [backend|frontend|whatsapp|all]"
             ;;
     esac
 }
@@ -167,26 +153,6 @@ start_frontend() {
     fi
 }
 
-start_landing() {
-    echo "Starting Landing Pages..."
-    if check_port $LANDING_PORT; then
-        echo -e "${YELLOW}Landing pages already running on port $LANDING_PORT${NC}"
-        return
-    fi
-    
-    cd $LANDING_DIR
-    node server.js > ../logs/landing.log 2>&1 &
-    echo $! > ../logs/landing.pid
-    cd - > /dev/null
-    sleep 2
-    
-    if check_port $LANDING_PORT; then
-        echo -e "${GREEN}✅ Landing pages started on port $LANDING_PORT${NC}"
-    else
-        echo -e "${RED}❌ Landing pages failed to start${NC}"
-    fi
-}
-
 start_whatsapp() {
     echo "Starting WhatsApp Service..."
     if check_port $WHATSAPP_PORT; then
@@ -221,21 +187,17 @@ stop() {
         frontend|dashboard)
             stop_frontend
             ;;
-        landing)
-            stop_landing
-            ;;
         whatsapp)
             stop_whatsapp
             ;;
         all)
             stop_backend
             stop_frontend
-            stop_landing
             stop_whatsapp
             ;;
         *)
             echo "Unknown service: $SERVICE"
-            echo "Usage: $0 stop [backend|frontend|landing|whatsapp|all]"
+            echo "Usage: $0 stop [backend|frontend|whatsapp|all]"
             ;;
     esac
 }
@@ -268,21 +230,6 @@ stop_frontend() {
     fi
     
     echo -e "${GREEN}✅ Frontend stopped${NC}"
-}
-
-stop_landing() {
-    echo "Stopping Landing Pages..."
-    if [ -f logs/landing.pid ]; then
-        kill $(cat logs/landing.pid) 2>/dev/null || true
-        rm logs/landing.pid
-    fi
-    
-    pid=$(get_port_process $LANDING_PORT)
-    if [ -n "$pid" ]; then
-        kill $pid 2>/dev/null || true
-    fi
-    
-    echo -e "${GREEN}✅ Landing pages stopped${NC}"
 }
 
 stop_whatsapp() {
@@ -322,9 +269,6 @@ logs() {
         frontend|dashboard)
             tail -f logs/frontend.log
             ;;
-        landing)
-            tail -f logs/landing.log
-            ;;
         whatsapp)
             tail -f logs/whatsapp.log
             ;;
@@ -333,7 +277,7 @@ logs() {
             tail -f logs/*.log
             ;;
         *)
-            echo "Usage: $0 logs [backend|frontend|landing|whatsapp|all]"
+            echo "Usage: $0 logs [backend|frontend|whatsapp|all]"
             ;;
     esac
 }
@@ -356,14 +300,6 @@ health() {
     # Frontend health
     echo "Frontend Dashboard:"
     if curl -s http://localhost:$FRONTEND_PORT | grep -q "AutoFlow"; then
-        echo -e "  ${GREEN}✅ Healthy${NC}"
-    else
-        echo -e "  ${RED}❌ Unhealthy${NC}"
-    fi
-    
-    # Landing health
-    echo "Landing Pages:"
-    if curl -s http://localhost:$LANDING_PORT | grep -q "AutoFlow"; then
         echo -e "  ${GREEN}✅ Healthy${NC}"
     else
         echo -e "  ${RED}❌ Unhealthy${NC}"
@@ -406,7 +342,7 @@ case $ACTION in
     *)
         echo "Usage: $0 {start|stop|restart|status|logs|health} [service]"
         echo ""
-        echo "Services: backend, frontend, landing, whatsapp, all"
+        echo "Services: backend, frontend, whatsapp, all"
         echo ""
         echo "Examples:"
         echo "  $0 start all       # Start all services"

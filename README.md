@@ -9,6 +9,7 @@ AutoFlow is an AI-powered customer communication platform that helps Arabic-spea
 ## ✨ Features
 
 ### Current (MVP)
+
 - 📱 **WhatsApp Integration** - Connect via QR code or API
 - 🤖 **Auto-Reply System** - Automated responses with keyword matching
 - 💬 **Conversation Management** - Real-time message handling
@@ -17,6 +18,7 @@ AutoFlow is an AI-powered customer communication platform that helps Arabic-spea
 - 💳 **Subscription Plans** - Starting at 2,000 EGP/month
 
 ### Coming Soon
+
 - 💬 Messenger Integration
 - 📷 Instagram Integration
 - ✈️ Telegram Integration
@@ -30,7 +32,7 @@ AutoFlow is an AI-powered customer communication platform that helps Arabic-spea
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │   Frontend      │     │  WhatsApp       │     │   AI Service    │
 │   (React)       │────▶│  Service        │────▶│   (Gemini)      │
-│   Port: 8081    │     │   Port: 3002    │     │   Port: 3001    │
+│   Port: 3001    │     │   Port: 3002    │     │   Port: 3001    │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
          │                                               │
          ▼                                               ▼
@@ -41,20 +43,23 @@ AutoFlow is an AI-powered customer communication platform that helps Arabic-spea
 └─────────────────┘                           └─────────────────┘
 ```
 
+> **Note:** Landing pages are in a separate repository: `autoflow-landing-pages`
+
 ## 🛠️ Tech Stack
 
-| Component | Technology |
-|-----------|------------|
+| Component    | Technology                   |
+| ------------ | ---------------------------- |
 | **Frontend** | React, Tailwind CSS, Zustand |
-| **Backend** | Node.js, Express, Socket.io |
-| **WhatsApp** | whatsapp-web.js (Puppeteer) |
-| **AI** | Google Gemini API |
-| **Database** | MongoDB (Mongoose) |
-| **Auth** | JWT, bcrypt |
+| **Backend**  | Node.js, Express, Socket.io  |
+| **WhatsApp** | whatsapp-web.js (Puppeteer)  |
+| **AI**       | Google Gemini API            |
+| **Database** | MongoDB (Mongoose)           |
+| **Auth**     | JWT, bcrypt                  |
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js 18+
 - MongoDB
 - Gemini API Key
@@ -100,46 +105,42 @@ REACT_APP_API_URL=http://localhost:5000
 ```
 autoflow-saas/
 ├── frontend/           # React dashboard
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── store/
-│   │   └── api/
-│   └── public/
+│   ├── backend/        # Express API + MongoDB
+│   └── frontend/      # React UI (Tailwind, Zustand)
 ├── whatsapp-service/   # WhatsApp Web.js integration
 │   ├── src/
 │   └── session/
 ├── ai-service/         # Gemini AI processing
 │   ├── prompts/
 │   └── processors/
-├── landing-pages/      # Marketing pages (Arabic/English)
-│   ├── dist/
-│   └── templates/
 └── README.md
 ```
 
+> **Landing pages:** See `autoflow-landing-pages` repository
+
 ## 💰 Pricing
 
-| Plan | Monthly | Yearly | Channels |
-|------|---------|--------|----------|
+| Plan           | Monthly   | Yearly     | Channels     |
+| -------------- | --------- | ---------- | ------------ |
 | **Starter** ⭐ | 2,000 EGP | 20,000 EGP | 1 (WhatsApp) |
-| **Standard** | 4,000 EGP | 40,000 EGP | 3 |
-| **Premium** | 8,000 EGP | 80,000 EGP | 8 |
+| **Standard**   | 4,000 EGP | 40,000 EGP | 3            |
+| **Premium**    | 8,000 EGP | 80,000 EGP | 8            |
 
 All plans include 14-day free trial.
 
 ## 🌐 Live Demo
 
-- **Dashboard:** http://52.249.222.161:8081
-- **Landing Pages:** http://52.249.222.161:8080
+- **Dashboard:** http://52.249.222.161:3001
 
 **Demo Credentials:**
+
 - Email: `mostafa@rawash.com`
 - Password: `Test123456`
 
 ## 🗺️ Roadmap
 
 ### Phase 1: MVP (12 days)
+
 - [x] User authentication
 - [ ] WhatsApp QR connection
 - [ ] Auto-reply system
@@ -147,6 +148,7 @@ All plans include 14-day free trial.
 - [ ] Production deployment
 
 ### Phase 2: Growth (17 days)
+
 - [ ] Payment integration (Paymob/Fawry)
 - [ ] Arabic onboarding flow
 - [ ] Message templates
@@ -154,6 +156,7 @@ All plans include 14-day free trial.
 - [ ] Landing page optimization
 
 ### Phase 3: Multi-channel (16 days)
+
 - [ ] Messenger integration
 - [ ] Instagram integration
 - [ ] Telegram integration

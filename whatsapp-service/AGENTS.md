@@ -1,113 +1,146 @@
-# AGENTS.md - Development Guidelines for Agents
+# AGENTS.md - WhatsApp Service Development Guidelines
 
 ## Project Overview
 
-This is a WhatsApp Web.js service with Express API. It provides an HTTP API for WhatsApp messaging with QR code authentication, conversation management, and Gemini AI integration.
+WhatsApp Web.js service with Express API. Provides HTTP API for WhatsApp messaging with QR code authentication, conversation management, and Gemini AI integration.
 
-## Build, Lint, and Test Commands
+## Commands
 
 ```bash
-# Build
-npm run build              # Compile TypeScript to dist/
-npm run clean              # Remove dist/ directory
-
 # Development
-npm run dev                # Run with hot reload (ts-node-dev)
-npm start                  # Build and run production
-
-# Testing
-npm test                   # Run all tests with coverage
-npm run test:watch         # Run tests in watch mode
-npm run test:unit          # Run only unit tests
-npm run test:integration   # Run only integration tests
-npm run test:e2e           # Run only e2e tests
-
-# Run a single test file
-npx jest --testPathPattern=filename.test.ts
-
-# Run a single test
-npx jest --testNamePattern="test name"
+npm run dev                # Run with nodemon (hot reload)
+npm start                  # Run production server
 
 # Linting
-npm run lint               # Run ESLint
+npm run lint               # Run ESLint on src/
 npm run lint:fix           # Fix ESLint issues
 
-# Formatting
-npm run format             # Format code with Prettier
-npm run format:check       # Check formatting only
+# Testing
+npm test                   # Run Jest tests
 
-# Type checking
-npm run typecheck          # TypeScript type check (no emit)
+# Build
+npm run clean              # Remove dist/ (if exists)
 ```
+
+## Tech Stack
+
+- **Language**: JavaScript (ES Modules)
+- **Runtime**: Node.js
+- **Module System**: ES Modules (`"type": "module"` in package.json)
+- **Framework**: Express 5.x
+- **WhatsApp**: whatsapp-web.js with Puppeteer
 
 ## Code Style Guidelines
 
-### General
+### ES Modules
 
-- Language: TypeScript (strict mode enabled)
-- Target: ES2020, Node.js
-- All source code in `src/` directory
+This project uses ES Modules, not CommonJS:
 
-### Imports and Path Aliases
-
-- Use path alias `@/` for internal imports: `import { X } from '@/services/x'`
-- Group imports in order: external libs, internal modules, relative paths
-- Use explicit relative imports for local files: `import { X } from './utils/logger'`
-
-```typescript
-// Correct
+```javascript
+// Correct (ES Modules)
 import express from 'express';
-import { createServiceLogger } from '@/utils/logger';
-import { CONFIG } from '../config/constants';
-import { WhatsAppClientWrapper } from './client';
+import { CONFIG } from './constants.js';
+import logger from './logger.js';
 
-// Avoid
-import { X } from '../../utils/logger';  // Use @/ instead
+// Wrong (CommonJS)
+const express = require('express');
 ```
 
-### Formatting (Prettier)
+### File Extensions
 
-- Semi-colons: yes
-- Single quotes: yes
-- Print width: 100 characters
-- Arrow functions: parentheses always
-- Trailing comma: es5 style
+Always include `.js` extension in imports:
+
+```javascript
+// Correct
+import { foo } from './utils/foo.js';
+
+// Wrong
+import { foo } from './utils/foo';
+```
 
 ### Naming Conventions
 
-- Classes: PascalCase (`WhatsAppClientWrapper`)
-- Functions/variables: camelCase (`createServiceLogger`, `isReady`)
-- Constants: SCREAMING_SNAKE_CASE (`LOCK_TIMEOUT_MS`)
-- Interfaces/Types: PascalCase with descriptive names
-- Files: kebab-case (`message-formatter.ts`)
-
-### TypeScript Rules (Strict)
-
-- `any` is forbidden - use proper types
-- Explicit return types required on functions
-- Explicit member accessibility (public/private) required
-- No non-null assertions (`!`) unless absolutely necessary
-- Use nullish coalescing (`??`) instead of `||`
-- Strict boolean expressions (no implicit boolean coercion)
+- Files: `kebab-case.js` (e.g., `message-formatter.js`, `conversation-manager.js`)
+- Classes: `PascalCase` (e.g., `WhatsAppClientWrapper`, `ConversationManager`)
+- Functions/variables: `camelCase` (e.g., `handleMessage`, `processAudio`)
+- Constants: `SCREAMING_SNAKE_CASE` (e.g., `LOCK_FILE`, `PORT`)
 
 ### Error Handling
 
-Use custom error classes from `src/utils/error-handler.ts`:
+Use custom error classes from `src/error-handler.js`:
 
-```typescript
-import { AppError, ValidationError, NotFoundError } from '@/utils/error-handler';
+```javascript
+import { ValidationError, NotFoundError } from './error-handler.js';
 
-// Throw specific errors
-throw new ValidationError('Invalid phone number', { field: 'phone' });
-throw new NotFoundError('Conversation not found', { id: conversationId });
-
-// In API handlers, use serializeError for responses
-import { serializeError } from '@/utils/error-handler';
-res.status(error.statusCode).json(serializeError(error));
+throw new ValidationError('Invalid phone number');
+throw new NotFoundError('Conversation not found');
 ```
 
-Error class hierarchy:
-- `AppError` - base class with statusCode, code, details
+### Logging
+
+Use the winston logger from `src/logger.js`:
+
+```javascript
+import logger from './logger.js';
+
+logger.info('Message sent successfully');
+logger.error('Failed to send message', error);
+logger.warn('Rate limit approaching');
+```
+
+### Async/Await
+
+Always handle promises properly:
+
+```javascript
+// Correct
+try {
+  await this.sendMessage(phone, message);
+} catch (error) {
+  logger.error('Failed', error);
+  throw error;
+}
+
+// Wrong - floating promise
+this.sendMessage(phone, message);  // No await, no catch
+```
+
+## Project Structure
+
+```
+src/
+├── app.js                # Application entry point
+├── server.js             # Express server setup
+├── constants.js          # Configuration constants
+├── logger.js             # Winston logger
+├── error-handler.js      # Custom error classes
+├── message-formatter.js  # Message formatting utilities
+├── whatsapp-client.js    # WhatsApp client wrapper
+├── conversation-manager.js  # Conversation state management
+└── constants.js          # All configuration values
+```
+
+## Configuration
+
+All config in `src/constants.js`. Environment variables:
+
+- `PORT` - Server port (default: 3002)
+- `GEMINI_ROBOT_URL` - AI service URL (default: http://localhost:3001)
+- `AUTHORIZED_NUMBERS` - Comma-separated allowed phone numbers (empty = all allowed)
+- `NODE_ENV` - Environment (development/production)
+
+## Puppeteer/WhatsApp Web.js
+
+- Chrome path: `/usr/bin/google-chrome`
+- Headless mode: enabled by default
+- Session data stored in `.wwebjs_auth/` directory
+- Process lock prevents multiple instances (`.app-lock` file)
+
+## Error Classes
+
+From `src/error-handler.js`:
+
+- `AppError` - Base class
 - `ValidationError` (400)
 - `AuthorizationError` (401)
 - `NotFoundError` (404)
@@ -117,52 +150,11 @@ Error class hierarchy:
 - `ConversationTimeoutError` (408)
 - `MaxConversationsError` (429)
 
-### Logging
+## API Response Format
 
-Use the structured logger from `@/utils/logger`:
+Consistent JSON responses:
 
-```typescript
-import { createServiceLogger } from '@/utils/logger';
-
-const log = createServiceLogger('ServiceName');
-
-log.info('Operation started');
-log.warn('Potential issue');
-log.error('Operation failed', error as Error);
-```
-
-### Async/Await
-
-- Always handle promises properly - no floating promises
-- Never ignore returned promises
-- Use try/catch for async operations that can fail
-
-```typescript
-// Correct
-await this.initializeClientWrapper();
-
-// Wrong
-this.initializeClientWrapper();  // Floating promise
-
-// With error handling
-try {
-  await this.sendMessage(phone, message);
-} catch (error) {
-  log.error('Failed to send message', error as Error);
-  throw error;
-}
-```
-
-### Configuration
-
-All config in `src/config/constants.ts`. Use `CONFIG` object, never hardcode values.
-
-### API Routes
-
-- Use Express 5.x
-- Validate inputs with Zod
-- Return consistent JSON response format:
-```typescript
+```javascript
 // Success
 { success: true, data: { ... } }
 
@@ -170,53 +162,17 @@ All config in `src/config/constants.ts`. Use `CONFIG` object, never hardcode val
 { success: false, error: { code: '...', message: '...' } }
 ```
 
-### Puppeteer/WhatsApp Web.js
+## Testing
 
-- Chrome path: `/usr/bin/google-chrome` (configured in client.ts)
-- Headless mode enabled
-- Use `WhatsAppClientWrapper` class for client operations
-- Event handlers must be set up via `.on()` method
-
-### Git/Development Workflow
-
-- No commits unless explicitly requested
-- Run `npm run lint` and `npm run typecheck` before submitting code
-- Ensure tests pass: `npm test`
-
-## Project Structure
-
-```
-src/
-├── api/
-│   ├── routes/           # Express route handlers
-│   │   ├── health.ts
-│   │   └── whatsapp.ts
-│   └── server.ts         # Express server setup
-├── config/
-│   └── constants.ts      # All configuration values
-├── services/
-│   ├── whatsapp/         # WhatsApp client wrapper
-│   ├── conversation/     # Conversation management
-│   └── integration/      # External integrations (Gemini)
-├── types/                # TypeScript type definitions
-├── utils/
-│   ├── logger.ts         # Winston logger
-│   ├── error-handler.ts  # Custom error classes
-│   └── message-formatter.ts
-└── app.ts                # Application entry point
-```
-
-## Environment Variables
-
-Configuration via `src/config/constants.ts`:
-- `PORT` - Server port
-- `NODE_ENV` - Environment (development/production)
-- `GEMINI_API_KEY` - Gemini AI API key
-- Session data stored in `.wwebjs_auth/` directory
-
-## Testing Patterns
-
+- Jest for testing framework
+- Mock WhatsApp client for unit tests
 - Unit tests in `tests/unit/`
 - Integration tests in `tests/integration/`
-- E2E tests in `tests/e2e/`
-- Use Jest matchers and mock WhatsApp client for unit tests
+
+## Common Gotchas
+
+1. **ES Modules**: Must use `.js` extensions in imports
+2. **No TypeScript**: This is JavaScript only
+3. **Process Lock**: Only one instance can run at a time (production mode skips lock)
+4. **Puppeteer**: Requires Chrome/Chromium installed
+5. **Session Persistence**: WhatsApp session stored in `.wwebjs_auth/`
