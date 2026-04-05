@@ -1,0 +1,396 @@
+{
+  "passed": 74,
+  "failed": 4,
+  "tests": [
+    {
+      "name": "Landing: Arabic homepage loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Landing: Arabic RTL direction",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Landing: AutoFlow title present",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Landing: Hero section present",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Landing: WhatsApp float button",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Landing: English homepage loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Landing: English LTR direction",
+      "status": "FAIL",
+      "details": ""
+    },
+    {
+      "name": "Landing: Pricing page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Landing: Shows 2000 EGP price",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Landing: WhatsApp-only product",
+      "status": "FAIL",
+      "details": ""
+    },
+    {
+      "name": "Landing: Articles page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Landing: Articles present",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Landing: Docs page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Landing: Doc sections present",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Landing: restaurant service page",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Landing: clinic service page",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Landing: ecommerce service page",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Landing: realestate service page",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Landing: lawyer service page",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "API: Health check",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "API: User registration",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "API: Returns auth token",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "API: Returns user object",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "API: Get current user",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "API: Get conversations",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "API: Get templates",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "API: Get auto-replies",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "API: Get analytics",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "API: Admin articles",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "API: Admin users",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "API: Admin roles",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "API: Admin subscriptions",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "API: Admin invoices",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "API: Admin logs",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Dashboard page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Dashboard has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Conversations page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Conversations has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Templates page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Templates has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Auto-replies page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Auto-replies has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Channels page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Channels has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Analytics page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Analytics has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Team page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Team has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Subscription page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Subscription has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Settings page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Settings has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Admin Dashboard page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Admin Dashboard has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Admin Users page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Admin Users has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Admin Articles page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Admin Articles has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Admin Docs page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Admin Docs has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Admin Roles page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Admin Roles has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Admin Subscriptions page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Admin Subscriptions has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Admin Invoices page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Admin Invoices has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Admin Logs page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Admin Logs has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: System Health page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: System Health has React root",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Login page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Frontend: Register page loads",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Content: Arabic text present",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Content: Shows 2000 EGP",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Content: Shows 4000 EGP",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Content: Shows 8000 EGP",
+      "status": "FAIL",
+      "details": ""
+    },
+    {
+      "name": "Content: Shows WhatsApp mention",
+      "status": "FAIL",
+      "details": ""
+    },
+    {
+      "name": "Content: WhatsApp contact link",
+      "status": "PASS",
+      "details": ""
+    }
+  ]
+}
