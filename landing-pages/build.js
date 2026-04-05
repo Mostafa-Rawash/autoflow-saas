@@ -6,6 +6,8 @@ const { generateServicesPage } = require('./src/services-page');
 const { generateFeaturePage } = require('./src/feature-page');
 const { generateServicePage } = require('./src/whatsapp-service-page');
 const { generateChannelServicePage } = require('./src/channel-service-page');
+const { generateArticlesRoutes } = require('./src/articles-page');
+const { generateDocsRoutes } = require('./src/docs-page');
 const {
   generateHeader,
   generateFooter,
@@ -649,6 +651,34 @@ channels.forEach(channel => {
 });
 
 console.log('');
+
+// Generate Articles Pages
+console.log('📄 Generating articles pages...');
+
+const articlesRoutes = generateArticlesRoutes();
+articlesRoutes.forEach(route => {
+  const routeDir = path.dirname(path.join(distDir, route.path));
+  if (!fs.existsSync(routeDir)) {
+    fs.mkdirSync(routeDir, { recursive: true });
+  }
+  fs.writeFileSync(path.join(distDir, route.path), route.content);
+});
+
+console.log(`   ✓ ${articlesRoutes.length} article pages generated\n`);
+
+// Generate Docs Pages
+console.log('📄 Generating documentation pages...');
+
+const docsRoutes = generateDocsRoutes();
+docsRoutes.forEach(route => {
+  const routeDir = path.dirname(path.join(distDir, route.path));
+  if (!fs.existsSync(routeDir)) {
+    fs.mkdirSync(routeDir, { recursive: true });
+  }
+  fs.writeFileSync(path.join(distDir, route.path), route.content);
+});
+
+console.log(`   ✓ ${docsRoutes.length} documentation pages generated\n`);
 
 console.log('✅ Build complete!\n');
 console.log('📁 Output directory: ./dist');

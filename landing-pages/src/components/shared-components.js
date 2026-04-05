@@ -259,6 +259,8 @@ function generateHeader(lang, activeLink = '') {
           </div>
           
           <a href="/pricing/${lang}/" class="text-sm ${activeLink === 'pricing' ? 'text-[#00D4AA]' : 'text-gray-400 hover:text-[#00D4AA]'}">${isRTL ? 'الأسعار' : 'Pricing'}</a>
+          <a href="/articles/${lang}/" class="text-sm ${activeLink === 'articles' ? 'text-[#00D4AA]' : 'text-gray-400 hover:text-[#00D4AA]'}">${isRTL ? 'المقالات' : 'Articles'}</a>
+          <a href="/docs/${lang}/" class="text-sm ${activeLink === 'docs' ? 'text-[#00D4AA]' : 'text-gray-400 hover:text-[#00D4AA]'}">${isRTL ? 'الدليل' : 'Docs'}</a>
           <a href="https://wa.me/201099129550" target="_blank" class="btn-gradient px-5 py-2 rounded-lg text-sm font-medium text-white">${isRTL ? 'تواصل' : 'Contact'}</a>
         </nav>
         <button class="md:hidden text-gray-400" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
@@ -295,6 +297,8 @@ function generateHeader(lang, activeLink = '') {
         </div>
         
         <a href="/pricing/${lang}/" class="block py-2 ${activeLink === 'pricing' ? 'text-[#00D4AA]' : 'text-gray-300'}">${isRTL ? 'الأسعار' : 'Pricing'}</a>
+        <a href="/articles/${lang}/" class="block py-2 ${activeLink === 'articles' ? 'text-[#00D4AA]' : 'text-gray-300'}">${isRTL ? 'المقالات' : 'Articles'}</a>
+        <a href="/docs/${lang}/" class="block py-2 ${activeLink === 'docs' ? 'text-[#00D4AA]' : 'text-gray-300'}">${isRTL ? 'الدليل' : 'Docs'}</a>
         <a href="https://wa.me/201099129550" target="_blank" class="block mt-2 btn-gradient px-4 py-2 rounded-lg text-center">${isRTL ? 'تواصل' : 'Contact'}</a>
       </nav>
     </div>
