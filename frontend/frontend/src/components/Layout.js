@@ -28,6 +28,18 @@ const menuItems = [
   { path: '/settings', icon: Settings, label: 'الإعدادات', available: true }
 ];
 
+// Admin menu items
+const adminMenuItems = [
+  { path: '/admin', icon: BarChart3, label: 'لوحة المدير', available: true },
+  { path: '/admin/users', icon: Users, label: 'المستخدمين', available: true },
+  { path: '/admin/roles', icon: Lock, label: 'الأدوار', available: true },
+  { path: '/admin/articles', icon: FileText, label: 'المقالات', available: true },
+  { path: '/admin/docs', icon: FileText, label: 'التوثيق', available: true },
+  { path: '/admin/subscriptions', icon: Crown, label: 'الاشتراكات', available: true },
+  { path: '/admin/invoices', icon: FileText, label: 'الفواتير', available: true },
+  { path: '/admin/logs', icon: BarChart3, label: 'سجل النشاط', available: true }
+];
+
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const { user, logout } = useAuthStore();
@@ -104,6 +116,39 @@ const Layout = ({ children }) => {
               </Link>
             );
           })}
+        </nav>
+
+        {/* Admin Section */}
+        <div className="px-4 py-2">
+          <p className="text-xs text-gray-500 font-semibold mb-2 px-2">إدارة النظام</p>
+        </div>
+        <nav className="px-4 pb-2 space-y-1">
+          {adminMenuItems.slice(0, 4).map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors ${
+                  isActive
+                    ? 'bg-purple-500/20 text-purple-400'
+                    : 'text-gray-500 hover:bg-white/5 hover:text-gray-300'
+                }`}
+              >
+                <item.icon className="w-4 h-4" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+          {adminMenuItems.length > 4 && (
+            <Link
+              to="/admin"
+              className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm text-gray-500 hover:text-gray-300"
+            >
+              <span>عرض الكل...</span>
+            </Link>
+          )}
         </nav>
 
         {/* User section */}

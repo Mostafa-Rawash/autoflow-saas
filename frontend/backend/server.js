@@ -19,6 +19,7 @@ const subscriptionRoutes = require('./routes/subscriptions');
 const whatsappRoutes = require('./routes/whatsapp');
 const autoReplyRoutes = require('./routes/auto-replies');
 const paymentRoutes = require('./routes/payments');
+const adminRoutes = require('./routes/admin');
 const Role = require('./models/Role');
 
 const app = express();
@@ -112,6 +113,7 @@ const startServer = async () => {
   app.use('/api/whatsapp', whatsappRoutes);
   app.use('/api/auto-replies', autoReplyRoutes);
   app.use('/api/payments', paymentRoutes);
+  app.use('/api/admin', adminRoutes);
 
   // Health check
   app.get('/health', (req, res) => {

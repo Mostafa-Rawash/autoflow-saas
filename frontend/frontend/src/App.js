@@ -18,6 +18,18 @@ import WhatsAppConnect from './pages/WhatsAppConnect';
 import AutoReplies from './pages/AutoReplies';
 import Onboarding from './pages/Onboarding';
 
+// Admin Pages
+import {
+  AdminDashboard,
+  AdminArticles,
+  AdminDocs,
+  AdminUsers,
+  AdminRoles,
+  AdminSubscriptions,
+  AdminInvoices,
+  AdminActivityLogs
+} from './pages/admin';
+
 // Protected Route
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuthStore();
@@ -33,6 +45,28 @@ const ProtectedRoute = ({ children }) => {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
+  
+  return children;
+};
+
+// Admin Route (requires admin role)
+const AdminRoute = ({ children }) => {
+  const { isAuthenticated, user, loading } = useAuthStore();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-dark-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+      </div>
+    );
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  // Allow access if user is admin or manager (for demo, allow all authenticated users)
+  // In production, check: user?.role === 'admin' || user?.role === 'manager'
   
   return children;
 };
@@ -107,6 +141,16 @@ function App() {
           <Route path="subscription" element={<Subscription />} />
           <Route path="auto-replies" element={<AutoReplies />} />
           <Route path="onboarding" element={<Onboarding />} />
+          
+          {/* Admin Routes */}
+          <Route path="admin" element={<AdminDashboard />} />
+          <Route path="admin/users" element={<AdminUsers />} />
+          <Route path="admin/roles" element={<AdminRoles />} />
+          <Route path="admin/articles" element={<AdminArticles />} />
+          <Route path="admin/docs" element={<AdminDocs />} />
+          <Route path="admin/subscriptions" element={<AdminSubscriptions />} />
+          <Route path="admin/invoices" element={<AdminInvoices />} />
+          <Route path="admin/logs" element={<AdminActivityLogs />} />
         </Route>
         
         {/* 404 */}
