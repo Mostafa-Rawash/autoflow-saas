@@ -1,0 +1,63 @@
+{
+  "name": "autoflow-saas",
+  "version": "1.0.0",
+  "description": "AutoFlow - WhatsApp Automation Platform for MENA Businesses",
+  "private": true,
+  "scripts": {
+    "test": "./tests/run-tests.sh all",
+    "test:api": "node tests/api.test.js",
+    "test:advanced": "node tests/advanced.test.js",
+    "test:csv": "node tests/advanced.test.js",
+    "test:frontend": "cd frontend/frontend && npm test",
+    "test:e2e": "npx cypress run --config-file tests/cypress.config.js",
+    "start": "./scripts/process.sh start all",
+    "stop": "./scripts/process.sh stop all",
+    "restart": "./scripts/process.sh restart all",
+    "status": "./scripts/process.sh status",
+    "logs": "./scripts/process.sh logs all",
+    "health": "./scripts/process.sh health",
+    "deploy:staging": "./scripts/deploy.sh staging",
+    "deploy:production": "./scripts/deploy.sh production",
+    "lint": "npx eslint . --ext .js,.jsx,.ts,.tsx",
+    "format": "npx prettier --write .",
+    "build": "npm run build:frontend && npm run build:landing",
+    "build:frontend": "cd frontend/frontend && npm run build",
+    "build:landing": "cd landing-pages && node build.js"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^8.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^14.3.1",
+    "@testing-library/user-event": "^14.6.1",
+    "axios": "^1.14.0",
+    "chalk": "^4.1.2",
+    "cypress": "^13.17.0",
+    "dotenv": "^16.6.1",
+    "eslint": "^8.57.1",
+    "faker": "^5.5.3",
+    "jest": "^29.7.0",
+    "mockdate": "^3.0.5",
+    "mongodb-memory-server": "^9.5.0",
+    "msw": "^2.0.0",
+    "natural": "^6.12.0",
+    "nock": "^13.5.6",
+    "nodemon": "^3.1.14",
+    "papaparse": "^5.5.3",
+    "prettier": "^3.8.1",
+    "supertest": "^6.3.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "whatsapp",
+    "automation",
+    "chatbot",
+    "arabic",
+    "mena",
+    "egypt",
+    "rtl"
+  ],
+  "author": "Mostafa Rawash",
+  "license": "MIT"
+}

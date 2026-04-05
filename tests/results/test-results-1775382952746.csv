@@ -1,0 +1,21 @@
+name,status
+Parse CSV file,PASS
+Parse CSV string,PASS
+Stringify to CSV,PASS
+Import test auto-replies,PASS
+Import test templates,PASS
+Generate Arabic name,PASS
+Generate Egyptian phone,PASS
+Generate business name,PASS
+Generate Arabic address,PASS
+Generate Arabic message by intent,PASS
+Arabic text detection,PASS
+Egyptian phone validation,FAIL
+JSON validation,PASS
+Response time assertion,PASS
+Generate conversation data,PASS
+Generate template data,PASS
+Generate auto-reply data,PASS
+Generate bulk data,PASS
+Measure execution time,PASS
+Check memory usage,PASS

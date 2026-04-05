@@ -1,0 +1,6 @@
+name,content,category,variables
+ترحيب جديد,أهلاً بك في {business_name}! نتشرف بخدمتك.,ترحيب,business_name
+تأكيد حجز,تم تأكيد حجزك يوم {date} الساعة {time}. نشكرك لاختيارنا.,حجز,date;time
+متابعة خدمة,نشكرك لزيارتك! نتمنى أن تكون سعيداً بخدمتنا. {business_name},متابعة,business_name
+عرض خاص,🎁 عرض خاص! خصم {discount}% على كل خدماتنا. العرض ساري حتى {expiry_date},عروض,discount;expiry_date
+فواتير,فاتورتك رقم {invoice_number} بمبلغ {amount} جنيه. للتفاصيل تواصل معنا.,فواتير,invoice_number;amount
