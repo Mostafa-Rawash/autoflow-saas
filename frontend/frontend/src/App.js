@@ -55,7 +55,7 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-// Admin Route (requires admin role)
+// Admin Route (requires admin/owner/manager role)
 const AdminRoute = ({ children }) => {
   const { isAuthenticated, user, loading } = useAuthStore();
 
@@ -71,8 +71,19 @@ const AdminRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Allow access if user is admin or manager (for demo, allow all authenticated users)
-  // In production, check: user?.role === 'admin' || user?.role === 'manager'
+  // Only allow owner, admin, or manager roles
+  const allowedRoles = ['owner', 'admin', 'manager'];
+  if (!allowedRoles.includes(user?.role)) {
+    return (
+      <div className="min-h-screen bg-light-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔒</div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Access Denied</h1>
+          <p className="text-gray-600">You don't have permission to access this page.</p>
+        </div>
+      </div>
+    );
+  }
 
   return children;
 };
@@ -160,14 +171,70 @@ function App() {
           <Route path="system-health" element={<SystemHealth />} />
 
           {/* Admin Routes */}
-          <Route path="admin" element={<AdminDashboard />} />
-          <Route path="admin/users" element={<AdminUsers />} />
-          <Route path="admin/roles" element={<AdminRoles />} />
-          <Route path="admin/articles" element={<AdminArticles />} />
-          <Route path="admin/docs" element={<AdminDocs />} />
-          <Route path="admin/subscriptions" element={<AdminSubscriptions />} />
-          <Route path="admin/invoices" element={<AdminInvoices />} />
-          <Route path="admin/logs" element={<AdminActivityLogs />} />
+          <Route
+            path="admin"
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="admin/users"
+            element={
+              <AdminRoute>
+                <AdminUsers />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="admin/roles"
+            element={
+              <AdminRoute>
+                <AdminRoles />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="admin/articles"
+            element={
+              <AdminRoute>
+                <AdminArticles />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="admin/docs"
+            element={
+              <AdminRoute>
+                <AdminDocs />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="admin/subscriptions"
+            element={
+              <AdminRoute>
+                <AdminSubscriptions />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="admin/invoices"
+            element={
+              <AdminRoute>
+                <AdminInvoices />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="admin/logs"
+            element={
+              <AdminRoute>
+                <AdminActivityLogs />
+              </AdminRoute>
+            }
+          />
         </Route>
 
         {/* 404 */}

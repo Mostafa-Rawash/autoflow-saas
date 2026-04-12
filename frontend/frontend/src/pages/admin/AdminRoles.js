@@ -62,10 +62,11 @@ const AdminRoles = () => {
   };
 
   const getDefaultRoles = () => [
-    { id: 1, name: 'مدير النظام', nameEn: 'Admin', key: 'admin', description: 'صلاحيات كاملة على النظام', color: 'red', permissions: ['all'], usersCount: 2 },
-    { id: 2, name: 'مشرف', nameEn: 'Manager', key: 'manager', description: 'إدارة المحتوى والمستخدمين', color: 'purple', permissions: ['users', 'content', 'analytics', 'subscriptions'], usersCount: 1 },
-    { id: 3, name: 'دعم فني', nameEn: 'Support', key: 'support', description: 'الرد على المحادثات والقوالب', color: 'blue', permissions: ['conversations', 'templates', 'auto-replies'], usersCount: 3 },
-    { id: 4, name: 'مستخدم عادي', nameEn: 'User', key: 'user', description: 'صلاحيات أساسية', color: 'gray', permissions: ['conversations', 'templates'], usersCount: 50 }
+    { id: 1, name: 'مالك الحساب', nameEn: 'Owner', key: 'owner', description: 'صلاحيات كاملة على الحساب', color: 'red', permissions: ['all'], usersCount: 1 },
+    { id: 2, name: 'مدير النظام', nameEn: 'Admin', key: 'admin', description: 'صلاحيات إدارية شاملة', color: 'purple', permissions: ['all'], usersCount: 2 },
+    { id: 3, name: 'مشرف', nameEn: 'Manager', key: 'manager', description: 'إدارة المحتوى والمستخدمين', color: 'blue', permissions: ['users', 'content', 'analytics', 'subscriptions'], usersCount: 1 },
+    { id: 4, name: 'وكيل', nameEn: 'Agent', key: 'agent', description: 'الرد على المحادثات والقوالب', color: 'green', permissions: ['conversations', 'templates', 'auto-replies'], usersCount: 3 },
+    { id: 5, name: 'مشاهد', nameEn: 'Viewer', key: 'viewer', description: 'صلاحيات قراءة فقط', color: 'gray', permissions: ['view'], usersCount: 50 }
   ];
 
   const handleSubmit = async (e) => {

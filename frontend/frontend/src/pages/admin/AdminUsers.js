@@ -11,7 +11,7 @@ const AdminUsers = () => {
     name: '',
     email: '',
     phone: '',
-    role: 'user',
+    role: 'agent',
     status: 'active',
     password: '',
     businessName: '',
@@ -19,10 +19,11 @@ const AdminUsers = () => {
   });
 
   const roles = [
-    { key: 'admin', name: 'مدير', color: 'red', permissions: ['all'] },
-    { key: 'manager', name: 'مشرف', color: 'purple', permissions: ['users', 'content', 'analytics'] },
-    { key: 'support', name: 'دعم', color: 'blue', permissions: ['conversations', 'templates'] },
-    { key: 'user', name: 'مستخدم', color: 'gray', permissions: ['basic'] }
+    { key: 'owner', name: 'مالك', color: 'red', permissions: ['all'] },
+    { key: 'admin', name: 'مدير', color: 'purple', permissions: ['all'] },
+    { key: 'manager', name: 'مشرف', color: 'blue', permissions: ['users', 'content', 'analytics', 'subscriptions'] },
+    { key: 'agent', name: 'وكيل', color: 'green', permissions: ['conversations', 'templates', 'auto-replies'] },
+    { key: 'viewer', name: 'مشاهد', color: 'gray', permissions: ['view'] }
   ];
 
   useEffect(() => {
@@ -45,10 +46,10 @@ const AdminUsers = () => {
   const getMockUsers = () => [
     { id: 1, name: 'أحمد محمد', email: 'ahmed@example.com', phone: '01012345678', role: 'admin', status: 'active', businessName: 'مطعم السعادة', businessType: 'restaurant', conversations: 156, lastActive: '2026-04-05', createdAt: '2026-01-15' },
     { id: 2, name: 'سارة أحمد', email: 'sara@example.com', phone: '01098765432', role: 'manager', status: 'active', businessName: 'عيادة الشفاء', businessType: 'clinic', conversations: 89, lastActive: '2026-04-04', createdAt: '2026-02-10' },
-    { id: 3, name: 'محمد علي', email: 'mohamed@example.com', phone: '01055556666', role: 'user', status: 'active', businessName: 'متجر الأناقة', businessType: 'ecommerce', conversations: 234, lastActive: '2026-04-03', createdAt: '2026-03-01' },
-    { id: 4, name: 'فاطمة حسن', email: 'fatma@example.com', phone: '01077778888', role: 'support', status: 'active', businessName: 'مكتب المحاماة', businessType: 'lawyer', conversations: 67, lastActive: '2026-04-05', createdAt: '2026-02-20' },
-    { id: 5, name: 'خالد عمر', email: 'khaled@example.com', phone: '01099990000', role: 'user', status: 'inactive', businessName: 'شركة العقار', businessType: 'realestate', conversations: 45, lastActive: '2026-03-15', createdAt: '2026-01-25' },
-    { id: 6, name: 'Mostafa Rawash', email: 'mostafa@rawash.com', phone: '01099129550', role: 'admin', status: 'active', businessName: 'AutoFlow', businessType: 'service', conversations: 500, lastActive: '2026-04-05', createdAt: '2026-01-01' },
+    { id: 3, name: 'محمد علي', email: 'mohamed@example.com', phone: '01055556666', role: 'agent', status: 'active', businessName: 'متجر الأناقة', businessType: 'ecommerce', conversations: 234, lastActive: '2026-04-03', createdAt: '2026-03-01' },
+    { id: 4, name: 'فاطمة حسن', email: 'fatma@example.com', phone: '01077778888', role: 'agent', status: 'active', businessName: 'مكتب المحاماة', businessType: 'lawyer', conversations: 67, lastActive: '2026-04-05', createdAt: '2026-02-20' },
+    { id: 5, name: 'خالد عمر', email: 'khaled@example.com', phone: '01099990000', role: 'viewer', status: 'inactive', businessName: 'شركة العقار', businessType: 'realestate', conversations: 45, lastActive: '2026-03-15', createdAt: '2026-01-25' },
+    { id: 6, name: 'Mostafa Rawash', email: 'mostafa@rawash.com', phone: '01099129550', role: 'owner', status: 'active', businessName: 'AutoFlow', businessType: 'service', conversations: 500, lastActive: '2026-04-05', createdAt: '2026-01-01' },
   ];
 
   const handleSubmit = async (e) => {
@@ -105,7 +106,7 @@ const AdminUsers = () => {
 
   const resetForm = () => {
     setFormData({
-      name: '', email: '', phone: '', role: 'user', status: 'active',
+      name: '', email: '', phone: '', role: 'agent', status: 'active',
       password: '', businessName: '', businessType: ''
     });
     setEditingUser(null);

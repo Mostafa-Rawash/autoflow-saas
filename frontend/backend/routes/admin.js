@@ -1,15 +1,56 @@
+/**
+ * Admin Routes
+ * 
+ * All routes require:
+ * - Authentication (auth middleware)
+ * - Admin privileges (owner/admin/manager role)
+ * 
+ * Permission: ADMIN_ONLY
+ * 
+ * @see middleware/auth.js - adminOnly middleware
+ * @see models/Role.js - Role definitions and permissions
+ */
+
 const express = require('express');
 const router = express.Router();
-const { auth } = require('../middleware/auth');
+const { auth, hasPermission, authorize } = require('../middleware/auth');
 
-// Middleware to check admin role
+/**
+ * Middleware: adminOnly
+ * 
+ * Restricts access to users with owner, admin, or manager roles.
+ * 
+ * Allowed roles: ['owner', 'admin', 'manager']
+ * Denied roles: ['agent', 'viewer']
+ * 
+ * @returns 403 FORBIDDEN if user lacks admin privileges
+ */
 const adminOnly = (req, res, next) => {
-  // In production, check: req.user.role === 'admin' || req.user.role === 'manager'
-  // For demo, allow all authenticated users
+  const allowedRoles = ['owner', 'admin', 'manager'];
+  if (!allowedRoles.includes(req.user.role)) {
+    return res.status(403).json({ 
+      success: false,
+      error: 'This action requires admin privileges',
+      code: 'ADMIN_ONLY'
+    });
+  }
   next();
 };
 
 // ====== ARTICLES ======
+/**
+ * Articles Management
+ * Permission: adminOnly (owner/admin/manager)
+ * Required permission: 'content' or 'all'
+ */
+/**
+ * Articles Management
+ * Permission: adminOnly (owner/admin/manager)
+ * Required permission: 'content' or 'all'
+ */
+
+// GET /api/admin/articles - List all articles
+// Permission: owner, admin, manager
 router.get('/articles', auth, adminOnly, async (req, res) => {
   try {
     // TODO: Get from database
@@ -53,6 +94,11 @@ router.delete('/articles/:id', auth, adminOnly, async (req, res) => {
 });
 
 // ====== DOCS ======
+/**
+ * Documentation Management
+ * Permission: adminOnly (owner/admin/manager)
+ * Required permission: 'content' or 'all'
+ */
 router.get('/docs', auth, adminOnly, async (req, res) => {
   try {
     res.json({
@@ -96,16 +142,27 @@ router.delete('/docs/:id', auth, adminOnly, async (req, res) => {
 });
 
 // ====== USERS ======
+/**
+ * User Management
+ * Permission: adminOnly (owner/admin/manager)
+ * Required permission: 'users' or 'all'
+ * 
+ * Operations:
+ * - GET /users - List all users
+ * - POST /users - Create new user
+ * - PUT /users/:id - Update user (role, status)
+ * - DELETE /users/:id - Delete user
+ */
 router.get('/users', auth, adminOnly, async (req, res) => {
   try {
     res.json({
       users: [
         { id: 1, name: 'أحمد محمد', email: 'ahmed@example.com', phone: '01012345678', role: 'admin', status: 'active', businessName: 'مطعم السعادة', businessType: 'restaurant', conversations: 156, lastActive: '2026-04-05', createdAt: '2026-01-15' },
         { id: 2, name: 'سارة أحمد', email: 'sara@example.com', phone: '01098765432', role: 'manager', status: 'active', businessName: 'عيادة الشفاء', businessType: 'clinic', conversations: 89, lastActive: '2026-04-04', createdAt: '2026-02-10' },
-        { id: 3, name: 'محمد علي', email: 'mohamed@example.com', phone: '01055556666', role: 'user', status: 'active', businessName: 'متجر الأناقة', businessType: 'ecommerce', conversations: 234, lastActive: '2026-04-03', createdAt: '2026-03-01' },
-        { id: 4, name: 'فاطمة حسن', email: 'fatma@example.com', phone: '01077778888', role: 'support', status: 'active', businessName: 'مكتب المحاماة', businessType: 'lawyer', conversations: 67, lastActive: '2026-04-05', createdAt: '2026-02-20' },
-        { id: 5, name: 'خالد عمر', email: 'khaled@example.com', phone: '01099990000', role: 'user', status: 'inactive', businessName: 'شركة العقار', businessType: 'realestate', conversations: 45, lastActive: '2026-03-15', createdAt: '2026-01-25' },
-        { id: 6, name: 'Mostafa Rawash', email: 'mostafa@rawash.com', phone: '01099129550', role: 'admin', status: 'active', businessName: 'AutoFlow', businessType: 'service', conversations: 500, lastActive: '2026-04-05', createdAt: '2026-01-01' }
+        { id: 3, name: 'محمد علي', email: 'mohamed@example.com', phone: '01055556666', role: 'agent', status: 'active', businessName: 'متجر الأناقة', businessType: 'ecommerce', conversations: 234, lastActive: '2026-04-03', createdAt: '2026-03-01' },
+        { id: 4, name: 'فاطمة حسن', email: 'fatma@example.com', phone: '01077778888', role: 'agent', status: 'active', businessName: 'مكتب المحاماة', businessType: 'lawyer', conversations: 67, lastActive: '2026-04-05', createdAt: '2026-02-20' },
+        { id: 5, name: 'خالد عمر', email: 'khaled@example.com', phone: '01099990000', role: 'viewer', status: 'inactive', businessName: 'شركة العقار', businessType: 'realestate', conversations: 45, lastActive: '2026-03-15', createdAt: '2026-01-25' },
+        { id: 6, name: 'Mostafa Rawash', email: 'mostafa@rawash.com', phone: '01099129550', role: 'owner', status: 'active', businessName: 'AutoFlow', businessType: 'service', conversations: 500, lastActive: '2026-04-05', createdAt: '2026-01-01' }
       ]
     });
   } catch (err) {
@@ -139,14 +196,27 @@ router.delete('/users/:id', auth, adminOnly, async (req, res) => {
 });
 
 // ====== ROLES ======
+/**
+ * Roles & Permissions Management
+ * Permission: adminOnly (owner/admin/manager)
+ * Required permission: 'roles' or 'all'
+ * 
+ * Roles hierarchy:
+ * - owner (100): Full access
+ * - admin (80): Full access
+ * - manager (60): Users, content, analytics
+ * - agent (40): Conversations, templates
+ * - viewer (20): Read-only
+ */
 router.get('/roles', auth, adminOnly, async (req, res) => {
   try {
     res.json({
       roles: [
-        { id: 1, name: 'مدير النظام', nameEn: 'Admin', key: 'admin', description: 'صلاحيات كاملة على النظام', color: 'red', permissions: ['all'], usersCount: 2 },
-        { id: 2, name: 'مشرف', nameEn: 'Manager', key: 'manager', description: 'إدارة المحتوى والمستخدمين', color: 'purple', permissions: ['users', 'content', 'analytics', 'subscriptions'], usersCount: 1 },
-        { id: 3, name: 'دعم فني', nameEn: 'Support', key: 'support', description: 'الرد على المحادثات والقوالب', color: 'blue', permissions: ['conversations', 'templates', 'auto-replies'], usersCount: 3 },
-        { id: 4, name: 'مستخدم عادي', nameEn: 'User', key: 'user', description: 'صلاحيات أساسية', color: 'gray', permissions: ['conversations', 'templates'], usersCount: 50 }
+        { id: 1, name: 'مالك الحساب', nameEn: 'Owner', key: 'owner', description: 'صلاحيات كاملة على الحساب', color: 'red', permissions: ['all'], usersCount: 1 },
+        { id: 2, name: 'مدير النظام', nameEn: 'Admin', key: 'admin', description: 'صلاحيات إدارية شاملة', color: 'purple', permissions: ['all'], usersCount: 2 },
+        { id: 3, name: 'مشرف', nameEn: 'Manager', key: 'manager', description: 'إدارة المحتوى والمستخدمين', color: 'blue', permissions: ['users', 'content', 'analytics', 'subscriptions'], usersCount: 1 },
+        { id: 4, name: 'وكيل', nameEn: 'Agent', key: 'agent', description: 'الرد على المحادثات والقوالب', color: 'green', permissions: ['conversations', 'templates', 'auto-replies'], usersCount: 3 },
+        { id: 5, name: 'مشاهد', nameEn: 'Viewer', key: 'viewer', description: 'صلاحيات قراءة فقط', color: 'gray', permissions: ['view'], usersCount: 50 }
       ]
     });
   } catch (err) {
@@ -180,6 +250,11 @@ router.delete('/roles/:id', auth, adminOnly, async (req, res) => {
 });
 
 // ====== SUBSCRIPTIONS ======
+/**
+ * Subscription Management
+ * Permission: adminOnly (owner/admin/manager)
+ * Required permission: 'subscriptions' or 'all'
+ */
 router.get('/subscriptions', auth, adminOnly, async (req, res) => {
   try {
     res.json({
@@ -219,6 +294,11 @@ router.put('/subscriptions/plans/:id', auth, adminOnly, async (req, res) => {
 });
 
 // ====== INVOICES ======
+/**
+ * Invoice Management
+ * Permission: adminOnly (owner/admin/manager)
+ * Required permission: 'billing' or 'all'
+ */
 router.get('/invoices', auth, adminOnly, async (req, res) => {
   try {
     res.json({
@@ -237,6 +317,11 @@ router.get('/invoices', auth, adminOnly, async (req, res) => {
 });
 
 // ====== ACTIVITY LOGS ======
+/**
+ * Activity Logs
+ * Permission: adminOnly (owner/admin/manager)
+ * Required permission: 'logs' or 'all'
+ */
 router.get('/logs', auth, adminOnly, async (req, res) => {
   try {
     res.json({

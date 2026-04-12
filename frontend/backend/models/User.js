@@ -32,8 +32,8 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin', 'agent'],
-    default: 'user'
+    enum: ['owner', 'admin', 'manager', 'agent', 'viewer'],
+    default: 'agent'
   },
   subscription: {
     plan: {
@@ -67,7 +67,7 @@ const UserSchema = new mongoose.Schema({
     },
     role: {
       type: String,
-      enum: ['owner', 'admin', 'agent'],
+      enum: ['owner', 'admin', 'manager', 'agent', 'viewer'],
       default: 'agent'
     }
   }],
