@@ -18,12 +18,10 @@ NC='\033[0m'
 # Ports
 BACKEND_PORT=5000
 FRONTEND_PORT=3001
-WHATSAPP_PORT=3002
 
 # Directories
 BACKEND_DIR="./frontend/backend"
 FRONTEND_DIR="./frontend/frontend"
-WHATSAPP_DIR="./whatsapp-service"
 
 echo -e "${BLUE}AutoFlow Process Manager${NC}"
 echo "========================="
@@ -68,20 +66,6 @@ status() {
     else
         echo -e "Frontend Dashboard (:$FRONTEND_PORT): ${RED}❌ Stopped${NC}"
     fi
-    
-    # WhatsApp Service
-    if check_port $WHATSAPP_PORT; then
-        pid=$(get_port_process $WHATSAPP_PORT)
-        echo -e "WhatsApp Service (:$WHATSAPP_PORT): ${GREEN}✅ Running${NC} (PID: $pid)"
-    else
-        echo -e "WhatsApp Service (:$WHATSAPP_PORT): ${YELLOW}⏸️ Stopped${NC} (Optional)"
-    fi
-    
-    # PM2 processes
-    if command -v pm2 &> /dev/null && pm2 list 2>/dev/null | grep -q "online"; then
-        echo -e "\n${BLUE}PM2 Processes:${NC}"
-        pm2 list
-    fi
 }
 
 # ========================================
@@ -98,17 +82,13 @@ start() {
         frontend|dashboard)
             start_frontend
             ;;
-        whatsapp)
-            start_whatsapp
-            ;;
         all)
             start_backend
             start_frontend
-            start_whatsapp
             ;;
         *)
             echo "Unknown service: $SERVICE"
-            echo "Usage: $0 start [backend|frontend|whatsapp|all]"
+            echo "Usage: $0 start [backend|frontend|all]"
             ;;
     esac
 }
@@ -153,26 +133,6 @@ start_frontend() {
     fi
 }
 
-start_whatsapp() {
-    echo "Starting WhatsApp Service..."
-    if check_port $WHATSAPP_PORT; then
-        echo -e "${YELLOW}WhatsApp service already running on port $WHATSAPP_PORT${NC}"
-        return
-    fi
-    
-    cd $WHATSAPP_DIR
-    npm start > ../logs/whatsapp.log 2>&1 &
-    echo $! > ../logs/whatsapp.pid
-    cd - > /dev/null
-    sleep 3
-    
-    if check_port $WHATSAPP_PORT; then
-        echo -e "${GREEN}✅ WhatsApp service started on port $WHATSAPP_PORT${NC}"
-    else
-        echo -e "${RED}❌ WhatsApp service failed to start${NC}"
-    fi
-}
-
 # ========================================
 # STOP
 # ========================================
@@ -187,17 +147,13 @@ stop() {
         frontend|dashboard)
             stop_frontend
             ;;
-        whatsapp)
-            stop_whatsapp
-            ;;
         all)
             stop_backend
             stop_frontend
-            stop_whatsapp
             ;;
         *)
             echo "Unknown service: $SERVICE"
-            echo "Usage: $0 stop [backend|frontend|whatsapp|all]"
+            echo "Usage: $0 stop [backend|frontend|all]"
             ;;
     esac
 }
@@ -232,21 +188,6 @@ stop_frontend() {
     echo -e "${GREEN}✅ Frontend stopped${NC}"
 }
 
-stop_whatsapp() {
-    echo "Stopping WhatsApp Service..."
-    if [ -f logs/whatsapp.pid ]; then
-        kill $(cat logs/whatsapp.pid) 2>/dev/null || true
-        rm logs/whatsapp.pid
-    fi
-    
-    pid=$(get_port_process $WHATSAPP_PORT)
-    if [ -n "$pid" ]; then
-        kill $pid 2>/dev/null || true
-    fi
-    
-    echo -e "${GREEN}✅ WhatsApp service stopped${NC}"
-}
-
 # ========================================
 # RESTART
 # ========================================
@@ -269,15 +210,12 @@ logs() {
         frontend|dashboard)
             tail -f logs/frontend.log
             ;;
-        whatsapp)
-            tail -f logs/whatsapp.log
-            ;;
         all)
             echo "Showing all logs (Ctrl+C to exit)..."
             tail -f logs/*.log
             ;;
         *)
-            echo "Usage: $0 logs [backend|frontend|whatsapp|all]"
+            echo "Usage: $0 logs [backend|frontend|all]"
             ;;
     esac
 }
@@ -303,14 +241,6 @@ health() {
         echo -e "  ${GREEN}✅ Healthy${NC}"
     else
         echo -e "  ${RED}❌ Unhealthy${NC}"
-    fi
-    
-    # WhatsApp health
-    echo "WhatsApp Service:"
-    if curl -s http://localhost:$WHATSAPP_PORT/health 2>/dev/null | grep -q "ok"; then
-        echo -e "  ${GREEN}✅ Healthy${NC}"
-    else
-        echo -e "  ${YELLOW}⏸️ Not Running (Optional)${NC}"
     fi
 }
 
@@ -342,7 +272,7 @@ case $ACTION in
     *)
         echo "Usage: $0 {start|stop|restart|status|logs|health} [service]"
         echo ""
-        echo "Services: backend, frontend, whatsapp, all"
+        echo "Services: backend, frontend, all"
         echo ""
         echo "Examples:"
         echo "  $0 start all       # Start all services"

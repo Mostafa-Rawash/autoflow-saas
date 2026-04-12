@@ -95,4 +95,17 @@ export const subscriptionsAPI = {
   getInvoices: () => api.get('/subscriptions/invoices')
 };
 
+// WhatsApp API (unified with backend)
+export const whatsappAPI = {
+  getQR: () => api.get('/whatsapp/qr'),
+  getStatus: () => api.get('/whatsapp/status'),
+  connect: () => api.post('/whatsapp/connect'),
+  disconnect: () => api.post('/whatsapp/disconnect'),
+  getChats: () => api.get('/whatsapp/chats'),
+  getMessages: (chatId, limit = 50) => api.get(`/whatsapp/chats/${chatId}/messages?limit=${limit}`),
+  getContacts: () => api.get('/whatsapp/contacts'),
+  send: (data) => api.post('/whatsapp/send', data),
+  refreshQR: () => api.post('/whatsapp/refresh-qr')
+};
+
 export default api;

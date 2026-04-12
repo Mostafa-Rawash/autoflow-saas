@@ -31,6 +31,32 @@ const demoConversations = [
   }
 ];
 
+// @route   GET /api/conversations/stats/overview
+// @desc    Get conversation statistics
+// @access  Private
+// NOTE: This MUST be before /:id to avoid route collision
+router.get('/stats/overview', auth, async (req, res) => {
+  try {
+    const total = await Conversation.countDocuments({ user: req.user.id });
+    const active = await Conversation.countDocuments({ user: req.user.id, status: 'active' });
+    const resolved = await Conversation.countDocuments({ user: req.user.id, status: 'resolved' });
+    const byChannel = total === 0 ? [{ _id: 'whatsapp', count: 48 }] : await Conversation.aggregate([
+      { $match: { user: req.user._id } },
+      { $group: { _id: '$channel', count: { $sum: 1 } } }
+    ]);
+
+    res.json({
+      success: true,
+      conversations: { total: total || 48, active: active || 12, resolved: resolved || 26 },
+      messages: { total: 326, byBot: 84, byAgent: 145, byContact: 97 },
+      byChannel
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // @route   GET /api/conversations
 // @desc    Get all conversations
 // @access  Private
@@ -154,31 +180,6 @@ router.post('/:id/messages', auth, async (req, res) => {
       lastMessage: { content, timestamp: new Date(), sender: 'agent' }
     });
     res.status(201).json({ success: true, message });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// @route   GET /api/conversations/stats/overview
-// @desc    Get conversation statistics
-// @access  Private
-router.get('/stats/overview', auth, async (req, res) => {
-  try {
-    const total = await Conversation.countDocuments({ user: req.user.id });
-    const active = await Conversation.countDocuments({ user: req.user.id, status: 'active' });
-    const resolved = await Conversation.countDocuments({ user: req.user.id, status: 'resolved' });
-    const byChannel = total === 0 ? [{ _id: 'whatsapp', count: 48 }] : await Conversation.aggregate([
-      { $match: { user: req.user._id } },
-      { $group: { _id: '$channel', count: { $sum: 1 } } }
-    ]);
-
-    res.json({
-      success: true,
-      conversations: { total: total || 48, active: active || 12, resolved: resolved || 26 },
-      messages: { total: 326, byBot: 84, byAgent: 145, byContact: 97 },
-      byChannel
-    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

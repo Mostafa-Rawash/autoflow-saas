@@ -1,206 +1,268 @@
+/**
+ * WhatsApp Routes
+ * Unified endpoint for WhatsApp integration
+ * Merged from standalone WhatsApp service into main backend
+ */
+
 const express = require('express');
 const router = express.Router();
 const whatsappService = require('../services/whatsapp.service');
-const { auth, hasPermission } = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
-// @route   POST /api/whatsapp/connect
-// @desc    Initialize WhatsApp connection
-// @access  Private
-router.post('/connect', auth, async (req, res) => {
-  try {
-    const result = await whatsappService.initializeClient(req.user.id);
-    
-    res.json({
-      success: true,
-      ...result
-    });
-  } catch (error) {
-    console.error('Error initializing WhatsApp:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to initialize WhatsApp connection' 
-    });
-  }
-});
-
-// @route   GET /api/whatsapp/qr
-// @desc    Get QR code for scanning
-// @access  Private
-router.get('/qr', auth, (req, res) => {
-  const qrData = whatsappService.getQRCode();
-  
-  if (qrData) {
-    res.json({
-      success: true,
-      qr: qrData.qr,
-      timestamp: qrData.timestamp,
-      message: 'Scan this QR code with WhatsApp on your phone'
-    });
-  } else {
-    const status = whatsappService.getStatus(req.user.id);
-    res.json({
-      success: true,
-      status: status.status,
-      message: status.status === 'connected' 
-        ? 'WhatsApp is already connected' 
-        : 'No QR code available. Please initialize connection first.'
-    });
-  }
-});
-
-// @route   GET /api/whatsapp/status
-// @desc    Get WhatsApp connection status
-// @access  Private
-router.get('/status', auth, (req, res) => {
-  const status = whatsappService.getStatus(req.user.id);
+/**
+ * @route   GET /api/whatsapp/health
+ * @desc    Get WhatsApp service health status
+ * @access  Public
+ */
+router.get('/health', (req, res) => {
   res.json({
     success: true,
-    ...status
+    service: 'whatsapp',
+    timestamp: new Date().toISOString()
   });
 });
 
-// @route   POST /api/whatsapp/disconnect
-// @desc    Disconnect WhatsApp
-// @access  Private
-router.post('/disconnect', auth, async (req, res) => {
+/**
+ * @route   GET /api/whatsapp/qr
+ * @desc    Get QR code for WhatsApp connection
+ * @access  Private
+ */
+router.get('/qr', auth, async (req, res) => {
   try {
-    const result = await whatsappService.disconnect(req.user.id);
+    const userId = req.user._id;
+    
+    // Initialize client if not exists
+    if (!whatsappService.clients.has(userId.toString())) {
+      await whatsappService.initializeClient(userId);
+      
+      // Wait a bit for QR generation
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    const qrData = whatsappService.getQRCode();
+    const status = whatsappService.getStatus(userId);
+
     res.json({
       success: true,
-      ...result
+      data: {
+        connected: status.status === 'connected',
+        qr: status.status !== 'connected' ? qrData?.qr : null,
+        hasQR: !!qrData?.qr,
+        status: status.status,
+        message: status.status === 'connected'
+          ? 'WhatsApp is connected'
+          : qrData?.qr
+            ? 'Scan QR code with WhatsApp'
+            : 'QR code generating... please wait'
+      }
+    });
+  } catch (error) {
+    console.error('Error getting QR:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get QR code'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/whatsapp/connect
+ * @desc    Initialize WhatsApp connection
+ * @access  Private
+ */
+router.post('/connect', auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const result = await whatsappService.initializeClient(userId);
+    
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Error connecting WhatsApp:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to connect WhatsApp'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/whatsapp/status
+ * @desc    Get WhatsApp connection status
+ * @access  Private
+ */
+router.get('/status', auth, (req, res) => {
+  const userId = req.user._id;
+  const status = whatsappService.getStatus(userId);
+  
+  res.json({
+    success: true,
+    data: status
+  });
+});
+
+/**
+ * @route   POST /api/whatsapp/disconnect
+ * @desc    Disconnect WhatsApp
+ * @access  Private
+ */
+router.post('/disconnect', auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const result = await whatsappService.disconnect(userId);
+    
+    res.json({
+      success: true,
+      data: result
     });
   } catch (error) {
     console.error('Error disconnecting WhatsApp:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: 'Failed to disconnect WhatsApp' 
+      error: 'Failed to disconnect WhatsApp'
     });
   }
 });
 
-// @route   GET /api/whatsapp/chats
-// @desc    Get all chats
-// @access  Private
-router.get('/chats', auth, hasPermission('viewConversations'), async (req, res) => {
+/**
+ * @route   GET /api/whatsapp/chats
+ * @desc    Get all WhatsApp chats
+ * @access  Private
+ */
+router.get('/chats', auth, async (req, res) => {
   try {
-    const chats = await whatsappService.getChats(req.user.id);
+    const userId = req.user._id;
+    const chats = await whatsappService.getChats(userId);
+    
     res.json({
       success: true,
-      chats
+      data: chats
     });
   } catch (error) {
     console.error('Error getting chats:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: error.message || 'Failed to get chats' 
+      error: error.message || 'Failed to get chats'
     });
   }
 });
 
-// @route   GET /api/whatsapp/chats/:chatId/messages
-// @desc    Get messages from a chat
-// @access  Private
-router.get('/chats/:chatId/messages', auth, hasPermission('viewConversations'), async (req, res) => {
+/**
+ * @route   GET /api/whatsapp/chats/:chatId/messages
+ * @desc    Get messages from a chat
+ * @access  Private
+ */
+router.get('/chats/:chatId/messages', auth, async (req, res) => {
   try {
+    const userId = req.user._id;
+    const { chatId } = req.params;
     const { limit = 50 } = req.query;
-    const messages = await whatsappService.getChatMessages(
-      req.user.id, 
-      req.params.chatId, 
-      parseInt(limit)
-    );
+    
+    const messages = await whatsappService.getChatMessages(userId, chatId, parseInt(limit));
+    
     res.json({
       success: true,
-      messages
+      data: messages
     });
   } catch (error) {
     console.error('Error getting messages:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: error.message || 'Failed to get messages' 
+      error: error.message || 'Failed to get messages'
     });
   }
 });
 
-// @route   GET /api/whatsapp/contacts
-// @desc    Get all contacts
-// @access  Private
+/**
+ * @route   GET /api/whatsapp/contacts
+ * @desc    Get all WhatsApp contacts
+ * @access  Private
+ */
 router.get('/contacts', auth, async (req, res) => {
   try {
-    const contacts = await whatsappService.getContacts(req.user.id);
+    const userId = req.user._id;
+    const contacts = await whatsappService.getContacts(userId);
+    
     res.json({
       success: true,
-      contacts
+      data: contacts
     });
   } catch (error) {
     console.error('Error getting contacts:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: error.message || 'Failed to get contacts' 
+      error: error.message || 'Failed to get contacts'
     });
   }
 });
 
-// @route   POST /api/whatsapp/send
-// @desc    Send message
-// @access  Private
-router.post('/send', auth, hasPermission('replyConversations'), async (req, res) => {
+/**
+ * @route   POST /api/whatsapp/send
+ * @desc    Send WhatsApp message
+ * @access  Private
+ */
+router.post('/send', auth, async (req, res) => {
   try {
-    const { to, content, buttons, media } = req.body;
-    
-    const result = await whatsappService.sendMessage(
-      req.user.id, 
-      to, 
-      content, 
-      { buttons, media }
-    );
-    
+    const userId = req.user._id;
+    const { to, message, media, buttons } = req.body;
+
+    if (!to || !message) {
+      return res.status(400).json({
+        success: false,
+        error: 'Phone number and message are required'
+      });
+    }
+
+    const result = await whatsappService.sendMessage(userId, to, message, {
+      media,
+      buttons
+    });
+
     res.json({
       success: true,
-      ...result
+      data: result
     });
   } catch (error) {
     console.error('Error sending message:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: error.message || 'Failed to send message' 
+      error: error.message || 'Failed to send message'
     });
   }
 });
 
-// @route   POST /api/whatsapp/send-bulk
-// @desc    Send bulk messages
-// @access  Private
-router.post('/send-bulk', auth, hasPermission('replyConversations'), async (req, res) => {
+/**
+ * @route   POST /api/whatsapp/refresh-qr
+ * @desc    Request new QR code (disconnect and reconnect)
+ * @access  Private
+ */
+router.post('/refresh-qr', auth, async (req, res) => {
   try {
-    const { recipients, content } = req.body;
-    const results = [];
-
-    for (const to of recipients) {
-      try {
-        const result = await whatsappService.sendMessage(req.user.id, to, content);
-        results.push({ to, success: true, ...result });
-        
-        // Wait 1 second between messages to avoid rate limits
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } catch (error) {
-        results.push({ to, success: false, error: error.message });
-      }
-    }
-
+    const userId = req.user._id;
+    
+    // Disconnect existing
+    await whatsappService.disconnect(userId);
+    
+    // Wait a moment
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Reinitialize
+    const result = await whatsappService.initializeClient(userId);
+    
     res.json({
       success: true,
-      results,
-      summary: {
-        total: recipients.length,
-        success: results.filter(r => r.success).length,
-        failed: results.filter(r => !r.success).length
+      data: {
+        message: 'QR refresh initiated',
+        ...result
       }
     });
   } catch (error) {
-    console.error('Error sending bulk messages:', error);
-    res.status(500).json({ 
+    console.error('Error refreshing QR:', error);
+    res.status(500).json({
       success: false,
-      error: 'Failed to send bulk messages' 
+      error: 'Failed to refresh QR code'
     });
   }
 });
