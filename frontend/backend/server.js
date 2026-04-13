@@ -97,6 +97,30 @@ const startServer = async () => {
       console.log('✅ MongoDB connected');
       // Seed default roles
       await Role.seedDefaults();
+      
+      // Create admin user if not exists
+      const User = require('./models/User');
+      const existingAdmin = await User.findOne({ email: 'admin@autoflow.com' });
+      if (!existingAdmin) {
+        const adminUser = new User({
+          name: 'Mostafa Rawash',
+          email: 'admin@autoflow.com',
+          phone: '+201099129550',
+          password: 'Admin@123456',
+          role: 'owner',
+          subscription: {
+            plan: 'premium',
+            status: 'active',
+            startDate: new Date(),
+            endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+            isActive: true
+          },
+          channels: [{ type: 'whatsapp', connected: false }],
+          settings: { language: 'ar', timezone: 'Africa/Cairo', notifications: { email: true, push: true, sms: false } }
+        });
+        await adminUser.save();
+        console.log('🎉 Admin user created: admin@autoflow.com / Admin@123456');
+      }
     })
     .catch(err => console.error('❌ MongoDB connection error:', err.message));
   }
