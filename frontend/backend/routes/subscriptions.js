@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Subscription = require('../models/Subscription');
+const User = require('../models/User');
 const { auth, checkSubscription, hasPermission } = require('../middleware/auth');
+
+const getScope = (req) => req.user.organization || req.user.id;
 
 // Plan pricing
 const planPricing = {
@@ -95,13 +98,14 @@ router.get('/plans', (req, res) => {
 // @access  Private
 router.get('/current', auth, async (req, res) => {
   try {
-    let subscription = await Subscription.findOne({ user: req.user.id });
+    let subscription = await Subscription.findOne({ $or: [{ organization: getScope(req) }, { user: req.user.id }] });
     
     if (!subscription) {
       // Create free trial
       subscription = new Subscription({
         user: req.user.id,
-        plan: 'free',
+      organization: getScope(req),
+      plan: 'free',
         status: 'trialing',
         endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
         trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
@@ -154,7 +158,7 @@ router.post('/upgrade', auth, hasPermission('manageBilling'), async (req, res) =
     const discountAmount = amount * 0.6;
     const finalAmount = amount - discountAmount;
     
-    let subscription = await Subscription.findOne({ user: req.user.id });
+    let subscription = await Subscription.findOne({ $or: [{ organization: getScope(req) }, { user: req.user.id }] });
     
     if (subscription) {
       subscription.plan = plan;
@@ -171,6 +175,7 @@ router.post('/upgrade', auth, hasPermission('manageBilling'), async (req, res) =
     } else {
       subscription = new Subscription({
         user: req.user.id,
+        organization: getScope(req),
         plan,
         billingCycle,
         amount: finalAmount,
@@ -220,7 +225,7 @@ router.post('/upgrade', auth, hasPermission('manageBilling'), async (req, res) =
 // @access  Private
 router.post('/cancel', auth, hasPermission('manageBilling'), async (req, res) => {
   try {
-    const subscription = await Subscription.findOne({ user: req.user.id });
+    const subscription = await Subscription.findOne({ $or: [{ organization: getScope(req) }, { user: req.user.id }] });
     
     if (!subscription) {
       return res.status(404).json({ error: 'Subscription not found' });
@@ -246,7 +251,7 @@ router.post('/cancel', auth, hasPermission('manageBilling'), async (req, res) =>
 // @access  Private
 router.get('/invoices', auth, hasPermission('viewBilling'), async (req, res) => {
   try {
-    const subscription = await Subscription.findOne({ user: req.user.id });
+    const subscription = await Subscription.findOne({ $or: [{ organization: getScope(req) }, { user: req.user.id }] });
     
     if (!subscription) {
       return res.json({ success: true, invoices: [] });

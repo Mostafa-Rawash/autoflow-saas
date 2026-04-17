@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Organization = require('../models/Organization');
 const { auth, authorize } = require('../middleware/auth');
 
 // @route   POST /api/auth/register
@@ -18,11 +19,21 @@ router.post('/register', async (req, res) => {
     }
 
     // Create user
+    const orgSlug = `${name || email}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || `org-${Date.now()}`;
+    const organization = await Organization.create({
+      name: name || email.split('@')[0],
+      slug: `${orgSlug}-${Date.now().toString().slice(-6)}`,
+      plan: 'free',
+      status: 'trial'
+    });
+
     user = new User({
       name,
       email,
       password,
       phone,
+      organization: organization._id,
+      role: 'owner',
       subscription: {
         plan: 'free',
         startDate: new Date(),
@@ -32,6 +43,8 @@ router.post('/register', async (req, res) => {
     });
 
     await user.save();
+    organization.owner = user._id;
+    await organization.save();
 
     // Generate token
     const token = jwt.sign(
@@ -48,6 +61,7 @@ router.post('/register', async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        organization: user.organization,
         subscription: user.subscription
       }
     });

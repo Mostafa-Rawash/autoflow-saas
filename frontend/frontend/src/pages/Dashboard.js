@@ -1,97 +1,79 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, BarChart3, CheckCircle2, MessageSquare, Sparkles, Users, CalendarDays } from 'lucide-react';
 
-console.log('📄 Dashboard.js file loaded');
+const cards = [
+  { label: 'Conversations', value: '0', icon: MessageSquare },
+  { label: 'Messages', value: '0', icon: BarChart3 },
+  { label: 'Active Users', value: '1', icon: Users },
+  { label: 'Tasks Today', value: '0', icon: CalendarDays },
+];
+
+const quickActions = [
+  { title: 'Complete onboarding', desc: 'Set up your workspace in a few steps', to: '/onboarding' },
+  { title: 'Connect channels', desc: 'Bring WhatsApp or Telegram online', to: '/channels' },
+  { title: 'Review conversations', desc: 'See your inbox and activity', to: '/conversations' },
+];
 
 const Dashboard = () => {
-  console.log('🚀 Dashboard component function called');
-  
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
+  const [userName, setUserName] = useState('there');
   useEffect(() => {
-    console.log('📊 Dashboard useEffect running');
-    fetchData();
+    try {
+      const raw = localStorage.getItem('user');
+      if (raw) setUserName(JSON.parse(raw)?.name || 'there');
+    } catch {}
   }, []);
 
-  const fetchData = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      console.log('🔑 Token:', token ? 'exists' : 'missing');
-      
-      if (!token) {
-        setError('No token found');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch('http://52.249.222.161:5000/api/conversations/stats/overview', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const result = await response.json();
-      console.log('📊 API Result:', result);
-      setData(result);
-      setLoading(false);
-    } catch (err) {
-      console.error('❌ Error:', err);
-      setError(err.message);
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-xl">Loading...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-8">
-        <h1 className="text-2xl font-bold text-red-500">Error: {error}</h1>
-        <button onClick={fetchData} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
-          Retry
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
-      
-      {data && data.success && (
-        <div className="grid grid-cols-4 gap-4">
-          <div className="p-4 bg-gray-800 rounded">
-            <p className="text-gray-400">Total Conversations</p>
-            <p className="text-3xl font-bold">{data.conversations?.total || 0}</p>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      <section className="rounded-3xl bg-white border border-slate-200 p-6 md:p-8 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full bg-sky-50 text-sky-700 px-3 py-1 text-sm font-medium">
+              <Sparkles className="w-4 h-4" />
+              Welcome back
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900">Hello, {userName}</h1>
+            <p className="text-slate-600 max-w-2xl">Your workspace is ready. Start with onboarding, connect your channels, and keep the UI simple and easy to scan.</p>
           </div>
-          <div className="p-4 bg-gray-800 rounded">
-            <p className="text-gray-400">Active</p>
-            <p className="text-3xl font-bold">{data.conversations?.active || 0}</p>
-          </div>
-          <div className="p-4 bg-gray-800 rounded">
-            <p className="text-gray-400">Resolved</p>
-            <p className="text-3xl font-bold">{data.conversations?.resolved || 0}</p>
-          </div>
-          <div className="p-4 bg-gray-800 rounded">
-            <p className="text-gray-400">Total Messages</p>
-            <p className="text-3xl font-bold">{data.messages?.total || 0}</p>
+          <div className="flex gap-3">
+            <Link to="/onboarding" className="inline-flex items-center gap-2 rounded-xl bg-slate-900 text-white px-4 py-3 text-sm font-semibold">
+              Start onboarding <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link to="/channels" className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+              Connect channels
+            </Link>
           </div>
         </div>
-      )}
+      </section>
 
-      <button 
-        onClick={fetchData} 
-        className="mt-4 px-4 py-2 bg-green-500 text-white rounded"
-      >
-        Refresh Data
-      </button>
+      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {cards.map((c) => (
+          <div key={c.label} className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">{c.label}</p>
+                <p className="mt-2 text-3xl font-bold text-slate-900">{c.value}</p>
+              </div>
+              <div className="h-11 w-11 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center"><c.icon className="w-5 h-5" /></div>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section className="grid lg:grid-cols-3 gap-4">
+        {quickActions.map((item) => (
+          <Link key={item.title} to={item.to} className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm hover:border-sky-300 transition-colors">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">{item.title}</h3>
+                <p className="mt-1 text-sm text-slate-600">{item.desc}</p>
+              </div>
+              <CheckCircle2 className="w-5 h-5 text-sky-500" />
+            </div>
+          </Link>
+        ))}
+      </section>
     </div>
   );
 };

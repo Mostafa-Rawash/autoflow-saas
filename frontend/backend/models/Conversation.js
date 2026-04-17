@@ -6,6 +6,12 @@ const ConversationSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  organization: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization',
+    required: true,
+    index: true
+  },
   channel: {
     type: String,
     enum: ['whatsapp', 'messenger', 'instagram', 'telegram', 'livechat', 'email', 'sms', 'api'],
@@ -72,7 +78,7 @@ const ConversationSchema = new mongoose.Schema({
 });
 
 // Index for efficient queries
-ConversationSchema.index({ user: 1, channel: 1, 'contact.externalId': 1 });
-ConversationSchema.index({ user: 1, status: 1, updatedAt: -1 });
+ConversationSchema.index({ organization: 1, channel: 1, 'contact.externalId': 1 });
+ConversationSchema.index({ organization: 1, status: 1, updatedAt: -1 });
 
 module.exports = mongoose.model('Conversation', ConversationSchema);

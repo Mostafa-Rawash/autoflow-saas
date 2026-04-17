@@ -2,55 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global foundation */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased selection:bg-sky-200 selection:text-sky-900;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f5f5f5;
+  background: #e2e8f0;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #00d4aa;
-  border-radius: 3px;
+  background: linear-gradient(180deg, #0ea5e9, #2563eb);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #00aa88;
+  background: linear-gradient(180deg, #0284c7, #1d4ed8);
 }
 
 /* Glass morphism */
 .glass {
-  @apply bg-dark-800/80 backdrop-blur-xl border border-dark-600/50;
+  @apply bg-white/80 backdrop-blur-xl border border-slate-200 shadow-sm;
 }
 
 .glass-dark {
-  @apply bg-dark-900/90 backdrop-blur-xl border border-dark-700/30;
+  @apply bg-slate-950/90 backdrop-blur-xl border border-slate-800/60;
 }
 
 /* Gradient text */
 .gradient-text {
-  @apply bg-gradient-to-r from-whatsapp to-primary-500 bg-clip-text text-transparent;
+  @apply bg-gradient-to-r from-sky-600 to-cyan-500 bg-clip-text text-transparent;
 }
 
 /* Buttons */
 .btn-primary {
-  @apply bg-gradient-to-r from-whatsapp to-primary-500 text-white font-semibold py-2 px-4 rounded-lg hover:shadow-lg hover:shadow-primary-500/20 transition-all duration-300;
+  @apply inline-flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 font-semibold text-white transition-all duration-200 hover:bg-sky-700 hover:shadow-md hover:shadow-sky-600/20 active:scale-[0.99];
 }
 
 .btn-secondary {
-  @apply border border-primary-500/40 text-gray-300 font-semibold py-2 px-4 rounded-lg hover:bg-primary-500/10 transition-all duration-300;
+  @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-700 transition-all duration-200 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.99];
 }
 
 /* Cards */
 .card {
-  @apply bg-dark-800 rounded-xl border border-dark-700 hover:border-primary-500/30 transition-all duration-300;
+  @apply rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:border-sky-200 hover:shadow-md;
 }
 
 .card-hover {
-  @apply hover:shadow-lg hover:shadow-primary-500/10 hover:-translate-y-1;
+  @apply hover:shadow-lg hover:shadow-primary-500/15 hover:-translate-y-1;
 }
 
 /* Channel colors */
@@ -69,15 +78,15 @@
 
 /* Status indicators */
 .status-active {
-  @apply bg-green-500/20 text-green-400 border-green-500/30;
+  @apply bg-emerald-50 text-emerald-700 border-emerald-200;
 }
 
 .status-pending {
-  @apply bg-yellow-500/20 text-yellow-400 border-yellow-500/30;
+  @apply bg-amber-50 text-amber-700 border-amber-200;
 }
 
 .status-resolved {
-  @apply bg-blue-500/20 text-blue-400 border-blue-500/30;
+  @apply bg-sky-50 text-sky-700 border-sky-200;
 }
 
 /* Animations */
@@ -97,5 +106,26 @@
 
 /* RTL support */
 [dir="rtl"] {
-  font-family: "Cairo", sans-serif;
+  font-family: "Cairo", "Inter", sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply tracking-tight;
+}
+
+
+.shell-surface {
+  @apply bg-white/90 border border-slate-200 shadow-sm;
+}
+
+.shell-muted {
+  @apply text-slate-500;
+}
+
+.sidebar-link {
+  @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900;
+}
+
+.sidebar-link-active {
+  @apply bg-sky-50 text-sky-700 border border-sky-200;
 }

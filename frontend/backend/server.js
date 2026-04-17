@@ -17,6 +17,7 @@ const webhookRoutes = require('./routes/webhooks');
 const analyticsRoutes = require('./routes/analytics');
 const subscriptionRoutes = require('./routes/subscriptions');
 const whatsappRoutes = require('./routes/whatsapp');
+const telegramRoutes = require('./routes/telegram');
 const autoReplyRoutes = require('./routes/auto-replies');
 const paymentRoutes = require('./routes/payments');
 const adminRoutes = require('./routes/admin');
@@ -118,14 +119,25 @@ const startServer = async () => {
       
       // Create admin user if not exists
       const User = require('./models/User');
+      const Organization = require('./models/Organization');
+      const OrganizationMember = require('./models/OrganizationMember');
       const existingAdmin = await User.findOne({ email: 'admin@autoflow.com' });
       if (!existingAdmin) {
+        const organization = await Organization.create({
+          name: 'AutoFlow',
+          slug: 'autoflow',
+          owner: null,
+          plan: 'premium',
+          status: 'active'
+        });
+
         const adminUser = new User({
           name: 'Mostafa Rawash',
           email: 'admin@autoflow.com',
           phone: '+201099129550',
           password: 'Admin@123456',
           role: 'owner',
+          organization: organization._id,
           subscription: {
             plan: 'premium',
             status: 'active',
@@ -133,10 +145,13 @@ const startServer = async () => {
             endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
             isActive: true
           },
-          channels: [{ type: 'whatsapp', connected: false }],
+          channels: [{ type: 'whatsapp', connected: false }, { type: 'telegram', connected: false }],
           settings: { language: 'ar', timezone: 'Africa/Cairo', notifications: { email: true, push: true, sms: false } }
         });
         await adminUser.save();
+        organization.owner = adminUser._id;
+        await organization.save();
+        await OrganizationMember.create({ organization: organization._id, user: adminUser._id, role: 'owner', status: 'active' });
         console.log('🎉 Admin user created: admin@autoflow.com / Admin@123456');
       }
     })
@@ -153,6 +168,7 @@ const startServer = async () => {
   app.use('/api/analytics', analyticsRoutes);
   app.use('/api/subscriptions', subscriptionRoutes);
   app.use('/api/whatsapp', whatsappRoutes);
+  app.use('/api/telegram', telegramRoutes);
   app.use('/api/auto-replies', autoReplyRoutes);
   app.use('/api/payments', paymentRoutes);
   app.use('/api/admin', adminRoutes);

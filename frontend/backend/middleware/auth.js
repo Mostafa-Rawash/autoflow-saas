@@ -1,7 +1,10 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Organization = require('../models/Organization');
 const Subscription = require('../models/Subscription');
 const Role = require('../models/Role');
+
+const getSubscriptionScope = (req) => req.user.organization || req.user._id;
 
 // Protect routes
 exports.auth = async (req, res, next) => {
@@ -39,6 +42,10 @@ exports.auth = async (req, res, next) => {
       });
     }
     
+    if (user.organization) {
+      req.organization = await Organization.findById(user.organization);
+    }
+
     req.user = user;
     next();
   } catch (err) {
@@ -103,12 +110,13 @@ exports.hasPermission = (permission) => {
 // Check subscription and limits
 exports.checkSubscription = async (req, res, next) => {
   try {
-    const subscription = await Subscription.findOne({ user: req.user._id });
+    const subscription = await Subscription.findOne({ $or: [{ organization: getSubscriptionScope(req) }, { user: req.user._id }] });
     
     if (!subscription) {
       // Create free trial subscription
       const newSubscription = new Subscription({
         user: req.user._id,
+        ...(req.user.organization ? { organization: getSubscriptionScope(req) } : {}),
         plan: 'free',
         status: 'trialing',
         endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days trial
@@ -164,7 +172,7 @@ exports.checkSubscription = async (req, res, next) => {
 exports.checkLimit = (resource) => {
   return async (req, res, next) => {
     try {
-      const subscription = req.subscription || await Subscription.findOne({ user: req.user._id });
+      const subscription = req.subscription || await Subscription.findOne({ $or: [{ organization: getSubscriptionScope(req) }, { user: req.user._id }] });
       
       if (!subscription) {
         return res.status(402).json({ 
@@ -205,7 +213,7 @@ exports.checkLimit = (resource) => {
 exports.canAdd = (resource, count = 1) => {
   return async (req, res, next) => {
     try {
-      const subscription = req.subscription || await Subscription.findOne({ user: req.user._id });
+      const subscription = req.subscription || await Subscription.findOne({ $or: [{ organization: getSubscriptionScope(req) }, { user: req.user._id }] });
       
       if (!subscription) {
         return res.status(402).json({ 
@@ -243,7 +251,7 @@ exports.canAdd = (resource, count = 1) => {
 // Get subscription limits for response
 exports.getLimits = async (req, res, next) => {
   try {
-    const subscription = await Subscription.findOne({ user: req.user._id });
+    const subscription = await Subscription.findOne({ $or: [{ organization: getSubscriptionScope(req) }, { user: req.user._id }] });
     
     if (subscription) {
       req.limits = {

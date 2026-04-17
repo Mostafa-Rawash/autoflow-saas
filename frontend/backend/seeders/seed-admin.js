@@ -32,19 +32,7 @@ const seedAdmin = async () => {
     await Role.seedDefaults();
     console.log('✅ Roles seeded');
 
-    // Check if admin exists
-    const existingAdmin = await User.findOne({ email: 'admin@autoflow.com' });
-    
-    if (existingAdmin) {
-      console.log('✅ Admin user already exists');
-      console.log('   Email: admin@autoflow.com');
-      console.log('   Role:', existingAdmin.role);
-      await mongoose.disconnect();
-      return;
-    }
-
-    // Create admin user
-    const adminUser = new User({
+    const adminData = {
       name: 'Mostafa Rawash',
       email: 'admin@autoflow.com',
       phone: '+201099129550',
@@ -55,7 +43,7 @@ const seedAdmin = async () => {
         plan: 'enterprise',
         status: 'active',
         startDate: new Date(),
-        endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+        endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
         isActive: true,
         limits: {
           conversations: Infinity,
@@ -85,7 +73,20 @@ const seedAdmin = async () => {
           sms: false
         }
       }
-    });
+    };
+
+    const existingAdmin = await User.findOne({ email: adminData.email });
+    if (existingAdmin) {
+      Object.assign(existingAdmin, adminData);
+      await existingAdmin.save();
+      console.log('✅ Admin user already exists and was refreshed');
+      console.log('   Email: admin@autoflow.com');
+      console.log('   Role:', existingAdmin.role);
+      await mongoose.disconnect();
+      return;
+    }
+
+    const adminUser = new User(adminData);
 
     await adminUser.save();
     

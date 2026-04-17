@@ -3,6 +3,8 @@ const router = express.Router();
 const Template = require('../models/Template');
 const { auth } = require('../middleware/auth');
 
+const getScope = (req) => req.user.organization || req.user.id;
+
 // @route   GET /api/templates
 // @desc    Get all templates
 // @access  Private
@@ -10,7 +12,7 @@ router.get('/', auth, async (req, res) => {
   try {
     const { channel, category } = req.query;
     
-    const query = { user: req.user.id, isActive: true };
+    const query = { user: req.user.id, isActive: true, ...(req.user.organization ? { organization: getScope(req) } : {}) };
     if (channel) query.channel = channel;
     if (category) query.category = category;
     
@@ -32,6 +34,7 @@ router.post('/', auth, async (req, res) => {
     
     const template = new Template({
       user: req.user.id,
+      ...(req.user.organization ? { organization: getScope(req) } : {}),
       name,
       category,
       channel,
@@ -55,7 +58,7 @@ router.post('/', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   try {
     const template = await Template.findOneAndUpdate(
-      { _id: req.params.id, user: req.user.id },
+      { _id: req.params.id, user: req.user.id, ...(req.user.organization ? { organization: getScope(req) } : {}) },
       req.body,
       { new: true }
     );
@@ -77,7 +80,7 @@ router.put('/:id', auth, async (req, res) => {
 router.delete('/:id', auth, async (req, res) => {
   try {
     const template = await Template.findOneAndUpdate(
-      { _id: req.params.id, user: req.user.id },
+      { _id: req.params.id, user: req.user.id, ...(req.user.organization ? { organization: getScope(req) } : {}) },
       { isActive: false },
       { new: true }
     );

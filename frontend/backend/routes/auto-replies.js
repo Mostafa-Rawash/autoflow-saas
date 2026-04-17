@@ -3,6 +3,8 @@ const router = express.Router();
 const AutoReply = require('../models/AutoReply');
 const { auth, checkLimit, checkSubscription } = require('../middleware/auth');
 
+const getScope = (req) => req.user.organization || req.user.id;
+
 // Demo auto-replies for when DB is empty
 const demoAutoReplies = [
   {
@@ -45,7 +47,7 @@ const demoAutoReplies = [
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const rules = await AutoReply.find({ user: req.user.id }).sort({ priority: -1 });
+    const rules = await AutoReply.find({ user: req.user.id, ...(req.user.organization ? { organization: getScope(req) } : {}) }).sort({ priority: -1 });
     
     if (rules.length === 0) {
       return res.json({ success: true, autoReplies: demoAutoReplies, demo: true });
@@ -67,6 +69,7 @@ router.post('/', auth, checkSubscription, checkLimit('templates'), async (req, r
     
     const autoReply = new AutoReply({
       user: req.user.id,
+      ...(req.user.organization ? { organization: getScope(req) } : {}),
       name,
       keywords,
       response,
@@ -92,7 +95,7 @@ router.put('/:id', auth, async (req, res) => {
     const { name, keywords, response, matchType, priority, isActive } = req.body;
     
     const autoReply = await AutoReply.findOneAndUpdate(
-      { _id: req.params.id, user: req.user.id },
+      { _id: req.params.id, user: req.user.id, ...(req.user.organization ? { organization: getScope(req) } : {}) },
       { 
         name, 
         keywords, 
@@ -123,7 +126,8 @@ router.delete('/:id', auth, async (req, res) => {
   try {
     const autoReply = await AutoReply.findOneAndDelete({ 
       _id: req.params.id, 
-      user: req.user.id 
+      user: req.user.id,
+      ...(req.user.organization ? { organization: getScope(req) } : {}) 
     });
     
     if (!autoReply) {

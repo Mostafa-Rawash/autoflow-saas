@@ -156,7 +156,14 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Dashboard />} />
+          <Route
+            index
+            element={
+              localStorage.getItem('autoflow_onboarded') === 'true'
+                ? <Dashboard />
+                : <Navigate to="/onboarding" replace />
+            }
+          />
           <Route path="conversations" element={<Conversations />} />
           <Route path="conversations/:id" element={<ConversationDetail />} />
           <Route path="templates" element={<Templates />} />

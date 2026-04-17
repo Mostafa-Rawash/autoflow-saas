@@ -6,6 +6,12 @@ const MessageSchema = new mongoose.Schema({
     ref: 'Conversation',
     required: true
   },
+  organization: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization',
+    required: true,
+    index: true
+  },
   sender: {
     type: String,
     enum: ['contact', 'agent', 'bot'],
@@ -68,6 +74,6 @@ const MessageSchema = new mongoose.Schema({
 });
 
 // Index for efficient queries
-MessageSchema.index({ conversation: 1, createdAt: -1 });
+MessageSchema.index({ organization: 1, conversation: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Message', MessageSchema);

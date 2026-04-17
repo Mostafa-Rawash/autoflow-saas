@@ -37,11 +37,13 @@ const demoConversations = [
 // NOTE: This MUST be before /:id to avoid route collision
 router.get('/stats/overview', auth, async (req, res) => {
   try {
-    const total = await Conversation.countDocuments({ user: req.user.id });
-    const active = await Conversation.countDocuments({ user: req.user.id, status: 'active' });
-    const resolved = await Conversation.countDocuments({ user: req.user.id, status: 'resolved' });
+    const queryFilter = { user: req.user.id };
+    if (req.user.organization) queryFilter.organization = req.user.organization;
+    const total = await Conversation.countDocuments(queryFilter);
+    const active = await Conversation.countDocuments({ ...queryFilter, status: 'active' });
+    const resolved = await Conversation.countDocuments({ ...queryFilter, status: 'resolved' });
     const byChannel = total === 0 ? [{ _id: 'whatsapp', count: 48 }] : await Conversation.aggregate([
-      { $match: { user: req.user._id } },
+      { $match: queryFilter },
       { $group: { _id: '$channel', count: { $sum: 1 } } }
     ]);
 
@@ -64,6 +66,7 @@ router.get('/', auth, async (req, res) => {
   try {
     const { status, page = 1, limit = 20 } = req.query;
     const query = { user: req.user.id };
+    if (req.user.organization) query.organization = req.user.organization;
     if (status) query.status = status;
 
     const conversations = await Conversation.find(query)
@@ -103,7 +106,9 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
-    const conversation = await Conversation.findOne({ _id: req.params.id, user: req.user.id });
+    const conversationQuery = { _id: req.params.id, user: req.user.id };
+    if (req.user.organization) conversationQuery.organization = req.user.organization;
+    const conversation = await Conversation.findOne(conversationQuery);
     if (!conversation) {
       const demo = demoConversations.find(c => c._id === req.params.id) || demoConversations[0];
       return res.json({ success: true, conversation: demo, messages: [] , demo: true});
@@ -123,8 +128,10 @@ router.get('/:id', auth, async (req, res) => {
 router.post('/', auth, checkSubscription, checkLimit('conversations'), async (req, res) => {
   try {
     const { contact, metadata } = req.body;
+    const organization = req.user.organization || req.user.id;
     const conversation = new Conversation({
       user: req.user.id,
+      organization,
       channel: 'whatsapp',
       contact,
       metadata
@@ -144,7 +151,7 @@ router.put('/:id', auth, async (req, res) => {
   try {
     const { status, priority, assignedTo, tags, notes } = req.body;
     const conversation = await Conversation.findOneAndUpdate(
-      { _id: req.params.id, user: req.user.id },
+      { _id: req.params.id, user: req.user.id, ...(req.user.organization ? { organization: req.user.organization } : {}) },
       { status, priority, assignedTo, tags, ...(notes ? { $push: { notes } } : {}) },
       { new: true }
     );
@@ -166,6 +173,16 @@ router.put('/:id', auth, async (req, res) => {
 router.post('/:id/messages', auth, async (req, res) => {
   try {
     const { content, type, media, buttons } = req.body;
+    const conversation = await Conversation.findOne({
+      _id: req.params.id,
+      user: req.user.id,
+      ...(req.user.organization ? { organization: req.user.organization } : {})
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+
     const message = new Message({
       conversation: req.params.id,
       sender: 'agent',

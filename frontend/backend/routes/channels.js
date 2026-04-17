@@ -1,119 +1,64 @@
 const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
+const ChannelConnection = require('../models/ChannelConnection');
 
-const activeChannel = {
-  id: 'whatsapp',
-  type: 'whatsapp',
-  name: 'واتس آب',
-  status: 'connected',
-  available: true,
-  color: '#25D366',
-  messages: 523,
-  lastSync: '2026-04-04T14:30:00Z'
-};
+const normalizeOrg = (req) => req.user.organization || req.user._id;
 
-const comingSoonChannels = [
-  { id: 'messenger', type: 'messenger', name: 'ماسنجر', status: 'coming-soon', available: false },
-  { id: 'instagram', type: 'instagram', name: 'إنستجرام', status: 'coming-soon', available: false },
-  { id: 'telegram', type: 'telegram', name: 'تيليجرام', status: 'coming-soon', available: false }
-];
-
-// @route   GET /api/channels
-// @desc    Get current channel setup
-// @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    res.json({
-      success: true,
-      integrations: [activeChannel],
-      disabled: comingSoonChannels
-    });
+    const organization = normalizeOrg(req);
+    const connections = await ChannelConnection.find({ organization });
+    res.json({ success: true, channels: connections });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// @route   POST /api/channels/connect
-// @desc    Connect WhatsApp only
-// @access  Private
 router.post('/connect', auth, async (req, res) => {
   try {
-    const { type } = req.body;
-    if (type && type !== 'whatsapp') {
-      return res.status(403).json({
-        success: false,
-        error: 'Only WhatsApp is available right now',
-        code: 'CHANNEL_DISABLED'
-      });
+    const organization = normalizeOrg(req);
+    const { type, displayName, config } = req.body;
+
+    if (!type) {
+      return res.status(400).json({ success: false, error: 'Channel type is required' });
     }
 
-    return res.json({
-      success: true,
-      integration: activeChannel,
-      message: 'WhatsApp is already connected in demo mode'
-    });
+    const connection = await ChannelConnection.findOneAndUpdate(
+      { organization, type },
+      {
+        organization,
+        type,
+        displayName: displayName || type,
+        config: config || {},
+        status: 'connecting',
+        connectedBy: req.user._id
+      },
+      { upsert: true, new: true }
+    );
+
+    res.json({ success: true, channel: connection });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// @route   PUT /api/channels/:id
-// @desc    Update channel config
-// @access  Private
-router.put('/:id', auth, async (req, res) => {
+router.delete('/:type', auth, async (req, res) => {
   try {
-    if (req.params.id !== 'whatsapp') {
-      return res.status(403).json({
-        success: false,
-        error: 'This channel is disabled',
-        code: 'CHANNEL_DISABLED'
-      });
+    const organization = normalizeOrg(req);
+    const connection = await ChannelConnection.findOneAndUpdate(
+      { organization, type: req.params.type },
+      { status: 'disconnected', lastError: null },
+      { new: true }
+    );
+
+    if (!connection) {
+      return res.status(404).json({ success: false, error: 'Channel not found' });
     }
 
-    res.json({ success: true, integration: activeChannel });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// @route   DELETE /api/channels/:id
-// @desc    Disconnect channel
-// @access  Private
-router.delete('/:id', auth, async (req, res) => {
-  try {
-    if (req.params.id !== 'whatsapp') {
-      return res.status(403).json({
-        success: false,
-        error: 'This channel is disabled',
-        code: 'CHANNEL_DISABLED'
-      });
-    }
-
-    return res.json({ success: true, message: 'WhatsApp disconnect is not available in demo mode' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// @route   POST /api/channels/:id/test
-// @desc    Test channel connection
-// @access  Private
-router.post('/:id/test', auth, async (req, res) => {
-  try {
-    if (req.params.id !== 'whatsapp') {
-      return res.status(403).json({
-        success: false,
-        error: 'This channel is disabled',
-        code: 'CHANNEL_DISABLED'
-      });
-    }
-
-    res.json({ success: true, message: 'Connection test successful' });
+    res.json({ success: true, channel: connection });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

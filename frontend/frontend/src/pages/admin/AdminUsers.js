@@ -26,6 +26,14 @@ const AdminUsers = () => {
     { key: 'viewer', name: 'مشاهد', color: 'gray', permissions: ['view'] }
   ];
 
+  const roleColorClasses = {
+    red: 'bg-rose-50 text-rose-700 border border-rose-200',
+    purple: 'bg-sky-50 text-sky-700 border border-violet-200',
+    blue: 'bg-sky-50 text-sky-700 border border-sky-200',
+    green: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+    gray: 'bg-slate-100 text-slate-600 border border-slate-200',
+  };
+
   useEffect(() => {
     fetchUsers();
   }, [filter]);
@@ -130,11 +138,11 @@ const AdminUsers = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold">إدارة المستخدمين</h1>
-          <p className="text-gray-400 text-sm mt-1">إدارة حسابات المستخدمين والصلاحيات</p>
+          <p className="text-slate-500 text-sm mt-1">إدارة حسابات المستخدمين والصلاحيات</p>
         </div>
         <button
           onClick={() => { resetForm(); setShowModal(true); }}
-          className="btn-gradient px-4 py-2 rounded-lg font-semibold flex items-center gap-2"
+          className="btn-primary px-4 py-2 rounded-lg font-semibold flex items-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -145,30 +153,30 @@ const AdminUsers = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="glass rounded-xl p-4">
-          <p className="text-gray-400 text-sm">إجمالي المستخدمين</p>
+        <div className="card p-4">
+          <p className="text-slate-500 text-sm">إجمالي المستخدمين</p>
           <p className="text-2xl font-bold">{users.length}</p>
         </div>
-        <div className="glass rounded-xl p-4">
-          <p className="text-gray-400 text-sm">نشطين</p>
-          <p className="text-2xl font-bold text-green-400">
+        <div className="card p-4">
+          <p className="text-slate-500 text-sm">نشطين</p>
+          <p className="text-2xl font-bold text-emerald-600">
             {users.filter(u => u.status === 'active').length}
           </p>
         </div>
-        <div className="glass rounded-xl p-4">
-          <p className="text-gray-400 text-sm">غير نشطين</p>
-          <p className="text-2xl font-bold text-red-400">
+        <div className="card p-4">
+          <p className="text-slate-500 text-sm">غير نشطين</p>
+          <p className="text-2xl font-bold text-rose-600">
             {users.filter(u => u.status === 'inactive').length}
           </p>
         </div>
-        <div className="glass rounded-xl p-4">
-          <p className="text-gray-400 text-sm">مشرفين</p>
-          <p className="text-2xl font-bold text-purple-400">
+        <div className="card p-4">
+          <p className="text-slate-500 text-sm">مشرفين</p>
+          <p className="text-2xl font-bold text-sky-700">
             {users.filter(u => u.role === 'admin' || u.role === 'manager').length}
           </p>
         </div>
-        <div className="glass rounded-xl p-4">
-          <p className="text-gray-400 text-sm">محادثات</p>
+        <div className="card p-4">
+          <p className="text-slate-500 text-sm">محادثات</p>
           <p className="text-2xl font-bold">
             {users.reduce((sum, u) => sum + u.conversations, 0).toLocaleString()}
           </p>
@@ -176,19 +184,19 @@ const AdminUsers = () => {
       </div>
 
       {/* Filters */}
-      <div className="glass rounded-xl p-4">
+      <div className="card p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <input
             type="text"
             placeholder="بحث..."
             value={filter.search}
             onChange={(e) => setFilter({ ...filter, search: e.target.value })}
-            className="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2"
+            className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700"
           />
           <select
             value={filter.role}
             onChange={(e) => setFilter({ ...filter, role: e.target.value })}
-            className="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2"
+            className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700"
           >
             <option value="">كل الأدوار</option>
             {roles.map(role => (
@@ -198,7 +206,7 @@ const AdminUsers = () => {
           <select
             value={filter.status}
             onChange={(e) => setFilter({ ...filter, status: e.target.value })}
-            className="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2"
+            className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700"
           >
             <option value="">كل الحالات</option>
             <option value="active">نشط</option>
@@ -206,7 +214,7 @@ const AdminUsers = () => {
           </select>
           <button
             onClick={() => setFilter({ role: '', status: '', search: '' })}
-            className="text-gray-400 hover:text-white"
+            className="text-slate-500 hover:text-rose-600"
           >
             مسح الفلاتر
           </button>
@@ -214,14 +222,14 @@ const AdminUsers = () => {
       </div>
 
       {/* Users List */}
-      <div className="glass rounded-xl overflow-hidden">
+      <div className="card overflow-hidden">
         {loading ? (
           <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500 mx-auto"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-sky-600 mx-auto"></div>
           </div>
         ) : (
           <table className="w-full">
-            <thead className="bg-dark-800">
+            <thead className="bg-slate-100">
               <tr>
                 <th className="px-4 py-3 text-right text-sm font-semibold">المستخدم</th>
                 <th className="px-4 py-3 text-right text-sm font-semibold">النشاط</th>
@@ -232,28 +240,28 @@ const AdminUsers = () => {
                 <th className="px-4 py-3 text-center text-sm font-semibold">إجراءات</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-dark-700">
+            <tbody className="divide-y divide-slate-200">
               {filteredUsers.map((user) => {
                 const roleInfo = roles.find(r => r.key === user.role) || roles[3];
                 return (
-                  <tr key={user.id} className="hover:bg-dark-800/50">
+                  <tr key={user.id} className="hover:bg-slate-50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center font-bold">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center font-bold">
                           {user.name.charAt(0)}
                         </div>
                         <div>
                           <p className="font-semibold">{user.name}</p>
-                          <p className="text-xs text-gray-500">{user.email}</p>
+                          <p className="text-xs text-slate-400">{user.email}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <p className="font-semibold">{user.businessName}</p>
-                      <p className="text-xs text-gray-500">{user.businessType}</p>
+                      <p className="text-xs text-slate-400">{user.businessType}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs bg-${roleInfo.color}-500/20 text-${roleInfo.color}-400`}>
+                      <span className={`px-2 py-1 rounded-full text-xs ${roleColorClasses[roleInfo.color] || roleColorClasses.gray}`}>
                         {roleInfo.name}
                       </span>
                     </td>
@@ -262,24 +270,24 @@ const AdminUsers = () => {
                         onClick={() => handleStatusToggle(user)}
                         className={`px-2 py-1 rounded-full text-xs ${
                           user.status === 'active' 
-                            ? 'bg-green-500/20 text-green-400' 
-                            : 'bg-red-500/20 text-red-400'
+                            ? 'bg-green-500/20 text-emerald-600' 
+                            : 'bg-red-500/20 text-rose-600'
                         }`}
                       >
                         {user.status === 'active' ? 'نشط' : 'غير نشط'}
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-gray-400">
+                    <td className="px-4 py-3 text-slate-500">
                       {user.conversations?.toLocaleString()}
                     </td>
-                    <td className="px-4 py-3 text-gray-400 text-sm">
+                    <td className="px-4 py-3 text-slate-500 text-sm">
                       {user.lastActive}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => handleEdit(user)}
-                          className="p-2 hover:bg-dark-700 rounded-lg text-gray-400 hover:text-white"
+                          className="p-2 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-slate-900"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -287,7 +295,7 @@ const AdminUsers = () => {
                         </button>
                         <button
                           onClick={() => handleDelete(user.id)}
-                          className="p-2 hover:bg-red-500/20 rounded-lg text-gray-400 hover:text-red-400"
+                          className="p-2 hover:bg-red-500/20 rounded-lg text-slate-500 hover:text-rose-600"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -306,8 +314,8 @@ const AdminUsers = () => {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-dark-900 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-dark-700">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-200">
               <h2 className="text-xl font-bold">
                 {editingUser ? 'تعديل المستخدم' : 'مستخدم جديد'}
               </h2>
@@ -320,7 +328,7 @@ const AdminUsers = () => {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full bg-dark-800 border border-dark-600 rounded-lg px-4 py-2"
+                    className="w-full bg-slate-100 border border-slate-300 rounded-lg px-4 py-2"
                     required
                   />
                 </div>
@@ -330,7 +338,7 @@ const AdminUsers = () => {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full bg-dark-800 border border-dark-600 rounded-lg px-4 py-2"
+                    className="w-full bg-slate-100 border border-slate-300 rounded-lg px-4 py-2"
                     required
                   />
                 </div>
@@ -340,7 +348,7 @@ const AdminUsers = () => {
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full bg-dark-800 border border-dark-600 rounded-lg px-4 py-2"
+                    className="w-full bg-slate-100 border border-slate-300 rounded-lg px-4 py-2"
                     placeholder="01xxxxxxxxx"
                   />
                 </div>
@@ -352,7 +360,7 @@ const AdminUsers = () => {
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full bg-dark-800 border border-dark-600 rounded-lg px-4 py-2"
+                    className="w-full bg-slate-100 border border-slate-300 rounded-lg px-4 py-2"
                     required={!editingUser}
                   />
                 </div>
@@ -365,7 +373,7 @@ const AdminUsers = () => {
                     type="text"
                     value={formData.businessName}
                     onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                    className="w-full bg-dark-800 border border-dark-600 rounded-lg px-4 py-2"
+                    className="w-full bg-slate-100 border border-slate-300 rounded-lg px-4 py-2"
                   />
                 </div>
                 <div>
@@ -373,7 +381,7 @@ const AdminUsers = () => {
                   <select
                     value={formData.businessType}
                     onChange={(e) => setFormData({ ...formData, businessType: e.target.value })}
-                    className="w-full bg-dark-800 border border-dark-600 rounded-lg px-4 py-2"
+                    className="w-full bg-slate-100 border border-slate-300 rounded-lg px-4 py-2"
                   >
                     <option value="">اختر النوع</option>
                     <option value="restaurant">مطعم</option>
@@ -393,7 +401,7 @@ const AdminUsers = () => {
                   <select
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full bg-dark-800 border border-dark-600 rounded-lg px-4 py-2"
+                    className="w-full bg-slate-100 border border-slate-300 rounded-lg px-4 py-2"
                   >
                     {roles.map(role => (
                       <option key={role.key} value={role.key}>{role.name}</option>
@@ -405,7 +413,7 @@ const AdminUsers = () => {
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full bg-dark-800 border border-dark-600 rounded-lg px-4 py-2"
+                    className="w-full bg-slate-100 border border-slate-300 rounded-lg px-4 py-2"
                   >
                     <option value="active">نشط</option>
                     <option value="inactive">غير نشط</option>
@@ -413,17 +421,17 @@ const AdminUsers = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-4 pt-4 border-t border-dark-700">
+              <div className="flex justify-end gap-4 pt-4 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => { setShowModal(false); resetForm(); }}
-                  className="px-6 py-2 rounded-lg bg-dark-800 hover:bg-dark-700"
+                  className="px-6 py-2 rounded-lg bg-slate-100 hover:bg-slate-200"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
-                  className="btn-gradient px-6 py-2 rounded-lg font-semibold"
+                  className="btn-primary px-6 py-2 rounded-lg font-semibold"
                 >
                   {editingUser ? 'حفظ التغييرات' : 'إنشاء المستخدم'}
                 </button>

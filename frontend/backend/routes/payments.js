@@ -4,6 +4,8 @@ const Payment = require('../models/Payment');
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
 const { auth, hasPermission } = require('../middleware/auth');
+
+const getScope = (req) => req.user.organization || req.user.id;
 const crypto = require('crypto');
 const axios = require('axios');
 
@@ -86,6 +88,7 @@ router.post('/create', auth, async (req, res) => {
     // Create payment record
     const payment = new Payment({
       user: req.user.id,
+      organization: getScope(req),
       amount,
       plan,
       billingCycle,
@@ -214,7 +217,7 @@ router.post('/webhook/paymob', async (req, res) => {
         
         // Update user subscription
         await Subscription.findOneAndUpdate(
-          { user: payment.user },
+          { $or: [{ organization: payment.organization }, { user: payment.user }] },
           {
             plan: payment.plan,
             status: 'active',
@@ -239,7 +242,7 @@ router.post('/webhook/paymob', async (req, res) => {
 // @access  Private
 router.post('/confirm/:id', auth, async (req, res) => {
   try {
-    const payment = await Payment.findOne({ _id: req.params.id, user: req.user.id });
+    const payment = await Payment.findOne({ _id: req.params.id, $or: [{ organization: getScope(req) }, { user: req.user.id }] });
     if (!payment) {
       return res.status(404).json({ error: 'Payment not found' });
     }
@@ -249,7 +252,7 @@ router.post('/confirm/:id', auth, async (req, res) => {
       
       // Update subscription
       await Subscription.findOneAndUpdate(
-        { user: req.user.id },
+        { $or: [{ organization: getScope(req) }, { user: req.user.id }] },
         {
           plan: payment.plan,
           status: 'active',
@@ -273,7 +276,7 @@ router.post('/confirm/:id', auth, async (req, res) => {
 // @access  Private
 router.get('/history', auth, async (req, res) => {
   try {
-    const payments = await Payment.find({ user: req.user.id }).sort({ createdAt: -1 });
+    const payments = await Payment.find({ $or: [{ organization: getScope(req) }, { user: req.user.id }] }).sort({ createdAt: -1 });
     if (payments.length === 0) {
       return res.json({ success: true, payments: demoPayments, demo: true });
     }
@@ -289,7 +292,7 @@ router.get('/history', auth, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
-    const payment = await Payment.findOne({ _id: req.params.id, user: req.user.id });
+    const payment = await Payment.findOne({ _id: req.params.id, $or: [{ organization: getScope(req) }, { user: req.user.id }] });
     if (!payment) {
       return res.status(404).json({ error: 'Payment not found' });
     }

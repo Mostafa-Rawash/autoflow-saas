@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const autoReplySchema = new mongoose.Schema({
+  organization: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', index: true },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

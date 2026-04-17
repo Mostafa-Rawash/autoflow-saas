@@ -108,6 +108,14 @@ export const whatsappAPI = {
   refreshQR: () => api.post('/whatsapp/refresh-qr')
 };
 
+// Telegram API (bot-based, minimal v1)
+export const telegramAPI = {
+  getHealth: () => api.get('/telegram/health'),
+  getStatus: () => api.get('/telegram/status'),
+  connect: () => api.post('/telegram/connect'),
+  disconnect: () => api.post('/telegram/disconnect')
+};
+
 // Logs API (admin only)
 export const logsAPI = {
   getAll: (params) => api.get('/logs', { params }),

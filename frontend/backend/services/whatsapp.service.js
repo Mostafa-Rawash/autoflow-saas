@@ -4,25 +4,40 @@ const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const User = require('../models/User');
+const AutoReply = require('../models/AutoReply');
+const Template = require('../models/Template');
+const ChannelConnection = require('../models/ChannelConnection');
 
 class WhatsAppService {
   constructor() {
-    this.clients = new Map(); // userId -> Client
+    this.clients = new Map(); // tenantKey -> Client
+    this.initializing = new Set();
+    this.reconnectTimers = new Map();
   }
 
   // Initialize WhatsApp client for a user
   async initializeClient(userId) {
-    // Check if client already exists
-    if (this.clients.has(userId)) {
+    const tenantKey = userId.toString();
+    // Check if client already exists or is being initialized
+    if (this.clients.has(tenantKey)) {
       return {
         status: 'already_exists',
         message: 'Client already initialized'
       };
     }
 
+    if (this.initializing.has(tenantKey)) {
+      return {
+        status: 'initializing',
+        message: 'Client initialization already in progress'
+      };
+    }
+
+    this.initializing.add(tenantKey);
+
     const client = new Client({
       authStrategy: new LocalAuth({
-        clientId: userId.toString(),
+        clientId: tenantKey,
         dataPath: './sessions'
       }),
       puppeteer: {
@@ -41,7 +56,7 @@ class WhatsAppService {
 
     // QR Code event
     client.on('qr', (qr) => {
-      console.log(`📱 QR Code for user ${userId}:`);
+      console.log(`📱 QR Code for tenant ${tenantKey}:`);
       qrcode.generate(qr, { small: true });
       
       // Store QR for frontend to fetch
@@ -50,19 +65,18 @@ class WhatsAppService {
     });
 
     // Ready event
-    client.on('ready', () => {
-      console.log(`✅ WhatsApp client ready for user ${userId}`);
-      
-      // Update user's channel status
-      this.updateChannelStatus(userId, 'connected');
-      
-      // Clear QR
+    client.on('ready', async () => {
+      console.log(`✅ WhatsApp client ready for tenant ${tenantKey}`);
+      await this.updateChannelStatus(tenantKey, 'connected');
       this.currentQR = null;
+      this.initializing.delete(tenantKey);
+      this.reconnectTimers.delete(tenantKey);
     });
 
     // Message received event
     client.on('message', async (message) => {
       await this.handleIncomingMessage(userId, message);
+      await this.processAutomations(userId, message);
     });
 
     // Message sent event
@@ -74,25 +88,54 @@ class WhatsAppService {
 
     // Disconnected event
     client.on('disconnected', (reason) => {
-      console.log(`❌ WhatsApp disconnected for user ${userId}: ${reason}`);
-      this.updateChannelStatus(userId, 'disconnected');
-      this.clients.delete(userId);
+      console.log(`❌ WhatsApp disconnected for tenant ${tenantKey}: ${reason}`);
+      this.updateChannelStatus(tenantKey, 'disconnected');
+      this.clients.delete(tenantKey);
+      this.scheduleReconnect(tenantKey, reason);
     });
 
     // Auth failure
     client.on('auth_failure', (error) => {
-      console.error(`🔐 Auth failure for user ${userId}:`, error);
-      this.updateChannelStatus(userId, 'error');
+      console.error(`🔐 Auth failure for tenant ${tenantKey}:`, error);
+      this.updateChannelStatus(tenantKey, 'error');
+      this.clients.delete(tenantKey);
+      this.initializing.delete(tenantKey);
     });
 
     // Initialize
-    await client.initialize();
-    this.clients.set(userId, client);
+    this.clients.set(tenantKey, client);
+
+    try {
+      await client.initialize();
+    } catch (error) {
+      this.clients.delete(tenantKey);
+      this.initializing.delete(tenantKey);
+      throw error;
+    }
+
+    this.initializing.delete(tenantKey);
 
     return {
       status: 'initializing',
       message: 'QR code will be generated shortly'
     };
+  }
+
+  scheduleReconnect(userId, reason) {
+    const tenantKey = userId.toString();
+    if (this.reconnectTimers.has(tenantKey)) return;
+
+    const timer = setTimeout(async () => {
+      this.reconnectTimers.delete(tenantKey);
+      try {
+        console.log(`🔄 Attempting WhatsApp reconnect for tenant ${tenantKey} after: ${reason}`);
+        await this.initializeClient(tenantKey);
+      } catch (error) {
+        console.error(`❌ Reconnect failed for user ${userId}:`, error.message || error);
+      }
+    }, 15000);
+
+    this.reconnectTimers.set(tenantKey, timer);
   }
 
   // Get QR Code
@@ -104,6 +147,79 @@ class WhatsAppService {
       };
     }
     return null;
+  }
+
+  async syncConnectedState(userId, status, lastError = null) {
+    try {
+      const user = await User.findById(userId);
+      const orgId = user?.organization || userId;
+      await ChannelConnection.findOneAndUpdate(
+        { organization: orgId, type: 'whatsapp' },
+        {
+          organization: orgId,
+          type: 'whatsapp',
+          status,
+          connectedAt: status === 'connected' ? new Date() : undefined,
+          lastError,
+          lastSyncAt: new Date()
+        },
+        { upsert: true, new: true }
+      );
+    } catch (err) {
+      console.error('Error syncing WhatsApp state:', err.message || err);
+    }
+  }
+
+  async processAutomations(userId, message) {
+    try {
+      const text = (message.body || '').trim();
+      if (!text) return;
+      const user = await User.findById(userId).select('organization');
+      const scopeId = user?.organization || userId;
+      const autoReply = await AutoReply.findOne({
+        $or: [{ user: userId }, { organization: scopeId }],
+        channel: 'whatsapp',
+        isActive: true
+      }).sort({ priority: -1 });
+
+      let matchedResponse = null;
+      if (autoReply) {
+        const lower = text.toLowerCase();
+        const kws = Array.isArray(autoReply.keywords) ? autoReply.keywords : [];
+        const matched = autoReply.matchType === 'exact'
+          ? kws.some(k => lower === String(k).toLowerCase())
+          : kws.some(k => lower.includes(String(k).toLowerCase()));
+        if (matched) {
+          matchedResponse = autoReply.response;
+          if (typeof autoReply.incrementUsage === 'function') await autoReply.incrementUsage();
+        }
+      }
+
+      if (!matchedResponse) {
+        const templates = await Template.find({
+          $or: [{ user: userId }, { organization: scopeId }],
+          channel: 'whatsapp',
+          isActive: true
+        }).sort({ usageCount: -1 }).limit(5);
+
+        for (const template of templates) {
+          const triggers = Array.isArray(template.triggers) ? template.triggers : [];
+          const lower = text.toLowerCase();
+          if (triggers.some(trigger => lower.includes(String(trigger).toLowerCase()))) {
+            matchedResponse = template.content;
+            await Template.findByIdAndUpdate(template._id, { $inc: { usageCount: 1 } }).catch(() => {});
+            break;
+          }
+        }
+      }
+
+      if (matchedResponse) {
+        const client = this.clients.get(userId.toString());
+        if (client) await client.sendMessage(message.from, matchedResponse);
+      }
+    } catch (error) {
+      console.error('Error processing automations:', error.message || error);
+    }
   }
 
   // Send message
@@ -261,9 +377,12 @@ class WhatsAppService {
   // Handle incoming message
   async handleIncomingMessage(userId, message) {
     try {
+      const user = await User.findById(userId).select('organization');
+      const organizationId = user?.organization || userId;
+
       // Get or create conversation
       let conversation = await Conversation.findOne({
-        user: userId,
+        organization: organizationId,
         channel: 'whatsapp',
         'contact.externalId': message.from
       });
@@ -274,6 +393,7 @@ class WhatsAppService {
         
         conversation = new Conversation({
           user: userId,
+          organization: organizationId,
           channel: 'whatsapp',
           contact: {
             name: contact.name || contact.pushname || message.from,
@@ -325,8 +445,10 @@ class WhatsAppService {
   async handleSentMessage(userId, message) {
     try {
       // Find conversation
+      const user = await User.findById(userId).select('organization');
+      const organizationId = user?.organization || userId;
       const conversation = await Conversation.findOne({
-        user: userId,
+        organization: organizationId,
         channel: 'whatsapp',
         'contact.externalId': message.to
       });
@@ -374,21 +496,19 @@ class WhatsAppService {
   // Update channel status in user's channels
   async updateChannelStatus(userId, status) {
     try {
-      const user = await User.findById(userId);
-      if (user) {
-        const channelIndex = user.channels.findIndex(c => c.type === 'whatsapp');
-        if (channelIndex >= 0) {
-          user.channels[channelIndex].connected = status === 'connected';
-          user.channels[channelIndex].connectedAt = status === 'connected' ? new Date() : null;
-        } else {
-          user.channels.push({
-            type: 'whatsapp',
-            connected: status === 'connected',
-            connectedAt: status === 'connected' ? new Date() : null
-          });
-        }
-        await user.save();
-      }
+      const user = await User.findById(userId).select('organization');
+      const orgId = user?.organization || userId;
+      await ChannelConnection.findOneAndUpdate(
+        { organization: orgId, type: 'whatsapp' },
+        {
+          organization: orgId,
+          type: 'whatsapp',
+          status,
+          connectedAt: status === 'connected' ? new Date() : undefined,
+          lastSyncAt: new Date()
+        },
+        { upsert: true, new: true }
+      );
     } catch (error) {
       console.error('Error updating channel status:', error);
     }

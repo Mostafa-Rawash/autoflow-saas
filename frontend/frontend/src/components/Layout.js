@@ -12,7 +12,9 @@ import {
   Menu,
   X,
   Lock,
-  Zap
+  Zap,
+  Sun,
+  Moon
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 
@@ -43,45 +45,59 @@ const adminMenuItems = [
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [theme, setTheme] = React.useState(() => localStorage.getItem('theme') || 'light');
   const { user, logout } = useAuthStore();
   const location = useLocation();
 
+  React.useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.classList.toggle('theme-light', theme === 'light');
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
   return (
-    <div className="min-h-screen bg-dark-950">
+    <div className={theme === 'light' ? 'min-h-screen bg-slate-50 text-slate-900' : 'min-h-screen bg-slate-950 text-slate-100'}>
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 glass-dark h-16 flex items-center justify-between px-4">
+      <header className={`lg:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 ${theme === 'light' ? 'bg-white/95 border-b border-slate-200 text-slate-900 shadow-sm' : 'glass-dark text-slate-100'}`}>
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-whatsapp to-primary-500 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center">
             <MessageSquare className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold gradient-text">AutoFlow</span>
+          <span className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-sky-600 to-blue-500">AutoFlow</span>
         </Link>
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 rounded-lg hover:bg-white/10"
-        >
-          {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className={`p-2 rounded-lg transition-colors ${theme === 'light' ? 'hover:bg-slate-100' : 'hover:bg-white/10'}`}
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className={`p-2 rounded-lg transition-colors ${theme === 'light' ? 'hover:bg-slate-100' : 'hover:bg-white/10'}`}
+          >
+            {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </header>
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 right-0 h-full w-64 bg-dark-900 border-l border-dark-700 z-40 transform transition-transform duration-300 lg:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
-        }`}
+        className={`fixed top-0 right-0 h-full w-64 z-40 transform transition-transform duration-300 lg:translate-x-0 ${theme === 'light' ? 'bg-white border-l border-slate-200 text-slate-900 shadow-xl shadow-slate-200/60' : 'bg-slate-950 border-l border-slate-800 text-slate-100'} ${sidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}`}
       >
         {/* Logo */}
-        <div className="hidden lg:flex items-center gap-2 h-16 px-4 border-b border-dark-700">
+        <div className={`hidden lg:flex items-center gap-2 h-16 px-4 ${theme === 'light' ? 'border-b border-slate-200' : 'border-b border-slate-800'}`}>
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-whatsapp to-primary-500 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center">
               <MessageSquare className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xl font-bold gradient-text">AutoFlow</span>
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-sky-600 to-blue-500">AutoFlow</span>
           </Link>
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-2">
+        <nav className="p-3 space-y-1.5">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             
@@ -89,11 +105,11 @@ const Layout = () => {
               return (
                 <div
                   key={item.path}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-500 bg-dark-800/30 cursor-not-allowed"
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-not-allowed ${theme === 'light' ? 'text-slate-500 bg-slate-100' : 'text-slate-400 bg-slate-900/40'}`}
                 >
                   <item.icon className="w-5 h-5" />
                   <span className="flex-1">{item.label}</span>
-                  <span className="px-2 py-0.5 bg-gray-700 text-gray-400 text-xs rounded-full flex items-center gap-1">
+                  <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-xs rounded-full flex items-center gap-1">
                     <Lock className="w-3 h-3" />
                     قريباً
                   </span>
@@ -106,10 +122,10 @@ const Layout = () => {
                 key={item.path}
                 to={item.path}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                   isActive
-                    ? 'bg-primary-500/20 text-primary-500'
-                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                    ? 'bg-sky-50 text-sky-700 border border-sky-200'
+                    : theme === 'light' ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' : 'text-slate-400 hover:bg-slate-900/60 hover:text-white'
                 }`}
               >
                 <item.icon className="w-5 h-5" />
@@ -121,7 +137,7 @@ const Layout = () => {
 
         {/* Admin Section */}
         <div className="px-4 py-2">
-          <p className="text-xs text-gray-500 font-semibold mb-2 px-2">إدارة النظام</p>
+          <p className={`text-xs font-semibold mb-2 px-2 ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>إدارة النظام</p>
         </div>
         <nav className="px-4 pb-2 space-y-1">
           {adminMenuItems.slice(0, 4).map((item) => {
@@ -131,10 +147,10 @@ const Layout = () => {
                 key={item.path}
                 to={item.path}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                   isActive
-                    ? 'bg-purple-500/20 text-purple-400'
-                    : 'text-gray-500 hover:bg-white/5 hover:text-gray-300'
+                    ? 'bg-violet-50 text-violet-700 border border-violet-200'
+                    : theme === 'light' ? 'text-slate-500 hover:bg-slate-100 hover:text-slate-800' : 'text-gray-500 hover:bg-white/5 hover:text-gray-300'
                 }`}
               >
                 <item.icon className="w-4 h-4" />
@@ -145,7 +161,7 @@ const Layout = () => {
           {adminMenuItems.length > 4 && (
             <Link
               to="/admin"
-              className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm text-gray-500 hover:text-gray-300"
+              className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm ${theme === 'light' ? 'text-slate-500 hover:text-slate-800' : 'text-gray-500 hover:text-gray-300'}`}
             >
               <span>عرض الكل...</span>
             </Link>
@@ -153,16 +169,16 @@ const Layout = () => {
         </nav>
 
         {/* User section */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-dark-700">
+        <div className={`absolute bottom-0 left-0 right-0 p-4 ${theme === 'light' ? 'border-t border-slate-200' : 'border-t border-dark-700'}`}>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center">
-              <span className="text-primary-500 font-bold">
+              <span className="text-sky-600 font-bold">
                 {user?.name?.charAt(0) || 'U'}
               </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">{user?.name}</p>
-              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+              <p className={`text-xs truncate ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>{user?.email}</p>
             </div>
           </div>
           
@@ -170,7 +186,7 @@ const Layout = () => {
           <div className="mb-4">
             <Link
               to="/subscription"
-              className="flex items-center justify-between p-2 rounded-lg bg-dark-800 hover:bg-dark-700 transition-colors"
+              className={`flex items-center justify-between p-2 rounded-lg transition-colors ${theme === 'light' ? 'bg-slate-100 hover:bg-slate-200 text-slate-800' : 'bg-slate-900/60 hover:bg-slate-800 text-slate-100'}`}
             >
               <div className="flex items-center gap-2">
                 <Crown className="w-4 h-4 text-[#F59E0B]" />
@@ -182,14 +198,14 @@ const Layout = () => {
                 </span>
               </div>
               {user?.subscription?.plan !== 'premium' && (
-                <span className="text-xs text-primary-500">ترقية</span>
+                <span className="text-xs text-sky-600">ترقية</span>
               )}
             </Link>
           </div>
           
           <button
             onClick={logout}
-            className="flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors"
+            className={`flex items-center gap-2 transition-colors ${theme === 'light' ? 'text-slate-500 hover:text-rose-600' : 'text-slate-400 hover:text-rose-400'}`}
           >
             <LogOut className="w-4 h-4" />
             <span>تسجيل خروج</span>
@@ -198,8 +214,8 @@ const Layout = () => {
       </aside>
 
       {/* Main content */}
-      <main className="lg:mr-64 pt-16 lg:pt-0">
-        <div className="p-6">
+      <main className="lg:mr-64 pt-14 lg:pt-0">
+        <div className="p-4">
           <Outlet />
         </div>
       </main>

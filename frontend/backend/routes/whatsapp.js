@@ -7,6 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const whatsappService = require('../services/whatsapp.service');
+const ChannelConnection = require('../models/ChannelConnection');
 const { auth } = require('../middleware/auth');
 
 /**
@@ -30,6 +31,7 @@ router.get('/health', (req, res) => {
 router.get('/qr', auth, async (req, res) => {
   try {
     const userId = req.user._id;
+    const orgId = req.user.organization || userId;
     
     // Initialize client if not exists
     if (!whatsappService.clients.has(userId.toString())) {
@@ -39,8 +41,21 @@ router.get('/qr', auth, async (req, res) => {
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
+    await ChannelConnection.findOneAndUpdate(
+      { organization: orgId, type: 'whatsapp' },
+      {
+        organization: orgId,
+        type: 'whatsapp',
+        status: 'connecting',
+        connectedBy: userId,
+        displayName: 'WhatsApp'
+      },
+      { upsert: true, new: true }
+    );
+
     const qrData = whatsappService.getQRCode();
     const status = whatsappService.getStatus(userId);
+    const isInitializing = whatsappService.initializing?.has(userId.toString());
 
     res.json({
       success: true,
@@ -48,12 +63,12 @@ router.get('/qr', auth, async (req, res) => {
         connected: status.status === 'connected',
         qr: status.status !== 'connected' ? qrData?.qr : null,
         hasQR: !!qrData?.qr,
-        status: status.status,
+        status: qrData?.qr ? status.status : (isInitializing ? 'initializing' : status.status),
         message: status.status === 'connected'
           ? 'WhatsApp is connected'
           : qrData?.qr
             ? 'Scan QR code with WhatsApp'
-            : 'QR code generating... please wait'
+            : (isInitializing ? 'WhatsApp is starting up... please wait' : 'QR code generating... please wait')
       }
     });
   } catch (error) {
@@ -73,7 +88,22 @@ router.get('/qr', auth, async (req, res) => {
 router.post('/connect', auth, async (req, res) => {
   try {
     const userId = req.user._id;
+    const orgId = req.user.organization || userId;
     const result = await whatsappService.initializeClient(userId);
+
+    await ChannelConnection.findOneAndUpdate(
+      { organization: orgId, type: 'whatsapp' },
+      {
+        organization: orgId,
+        type: 'whatsapp',
+        status: result.status === 'connected' ? 'connected' : 'connecting',
+        connectedBy: userId,
+        displayName: 'WhatsApp',
+        connectedAt: result.status === 'connected' ? new Date() : undefined,
+        lastError: result.error || null
+      },
+      { upsert: true, new: true }
+    );
     
     res.json({
       success: true,
@@ -95,7 +125,17 @@ router.post('/connect', auth, async (req, res) => {
  */
 router.get('/status', auth, (req, res) => {
   const userId = req.user._id;
+  const orgId = req.user.organization || userId;
   const status = whatsappService.getStatus(userId);
+
+  ChannelConnection.findOne({ organization: orgId, type: 'whatsapp' }).then(connection => {
+    if (connection && connection.status !== status.status) {
+      connection.status = status.status === 'connected' ? 'connected' : status.status === 'connecting' ? 'connecting' : 'disconnected';
+      connection.lastError = status.error || null;
+      connection.lastSyncAt = new Date();
+      connection.save().catch(() => {});
+    }
+  }).catch(() => {});
   
   res.json({
     success: true,
