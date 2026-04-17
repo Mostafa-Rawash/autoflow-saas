@@ -22,19 +22,24 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch user on mount
+  // Check token on mount
+  const hasToken = localStorage.getItem('token');
+
+  // Fetch data on mount if token exists
   useEffect(() => {
-    if (!isAuthenticated) {
-      fetchUser();
+    if (hasToken) {
+      fetchData();
+    } else {
+      setLoading(false);
     }
   }, []);
 
-  // Fetch data when authenticated
+  // Also fetch when user changes
   useEffect(() => {
-    if (isAuthenticated) {
+    if (user && hasToken) {
       fetchData();
     }
-  }, [isAuthenticated]);
+  }, [user]);
 
   const fetchData = async () => {
     try {
@@ -116,7 +121,7 @@ const Dashboard = () => {
     { label: 'أيام متبقية في الاشتراك', value: 23, link: '/subscription' }
   ];
 
-  if (!isAuthenticated) {
+  if (!hasToken) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <AlertCircle className="w-12 h-12 text-yellow-400 mb-4" />

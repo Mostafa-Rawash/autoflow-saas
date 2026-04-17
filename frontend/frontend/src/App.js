@@ -40,6 +40,7 @@ import {
 // Protected Route
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuthStore();
+  const hasToken = localStorage.getItem('token');
 
   if (loading) {
     return (
@@ -49,7 +50,7 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!hasToken) {
     return <Navigate to="/login" replace />;
   }
 
@@ -59,6 +60,7 @@ const ProtectedRoute = ({ children }) => {
 // Admin Route (requires admin/owner/manager role)
 const AdminRoute = ({ children }) => {
   const { isAuthenticated, user, loading } = useAuthStore();
+  const hasToken = localStorage.getItem('token');
 
   if (loading) {
     return (
@@ -68,7 +70,7 @@ const AdminRoute = ({ children }) => {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!hasToken) {
     return <Navigate to="/login" replace />;
   }
 
@@ -92,6 +94,7 @@ const AdminRoute = ({ children }) => {
 // Public Route (redirect if authenticated)
 const PublicRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuthStore();
+  const hasToken = localStorage.getItem('token');
 
   if (loading) {
     return (
@@ -101,7 +104,7 @@ const PublicRoute = ({ children }) => {
     );
   }
 
-  if (isAuthenticated) {
+  if (hasToken) {
     return <Navigate to="/" replace />;
   }
 
