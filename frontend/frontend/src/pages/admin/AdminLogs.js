@@ -5,7 +5,7 @@ import {
   RefreshCw, Trash2, Eye, Clock, User, Server, Globe,
   ChevronLeft, ChevronRight, Search, Calendar
 } from 'lucide-react';
-import { logsAPI } from '../api';
+import { logsAPI } from '../../api';
 import toast from 'react-hot-toast';
 
 const AdminLogs = () => {
