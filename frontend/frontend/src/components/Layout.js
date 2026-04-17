@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, Outlet } from 'react-router-dom';
 import { 
   MessageSquare, 
   FileText, 
@@ -41,13 +41,10 @@ const adminMenuItems = [
   { path: '/admin/logs', icon: BarChart3, label: 'سجل النشاط', available: true }
 ];
 
-const Layout = ({ children }) => {
-  console.log('🏗️ Layout rendering, children:', children?.type?.name || 'unknown');
+const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const { user, logout } = useAuthStore();
   const location = useLocation();
-  
-  console.log('📍 Current location:', location.pathname);
 
   return (
     <div className="min-h-screen bg-dark-950">
@@ -203,7 +200,7 @@ const Layout = ({ children }) => {
       {/* Main content */}
       <main className="lg:mr-64 pt-16 lg:pt-0">
         <div className="p-6">
-          {children}
+          <Outlet />
         </div>
       </main>
 
