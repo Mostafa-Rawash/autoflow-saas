@@ -162,7 +162,7 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<DashboardTest />} />
+          <Route index element={<Dashboard />} />
           <Route path="conversations" element={<Conversations />} />
           <Route path="conversations/:id" element={<ConversationDetail />} />
           <Route path="templates" element={<Templates />} />
