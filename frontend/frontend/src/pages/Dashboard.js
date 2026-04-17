@@ -2,90 +2,71 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   MessageSquare, TrendingUp, TrendingDown, Users, Clock, ArrowUpRight, ArrowDownRight, 
-  RefreshCw, Smartphone, Zap, BarChart3, Crown, Settings, Bell, ChevronLeft
+  RefreshCw, Smartphone, Zap, BarChart3, Crown, Settings, Bell, ChevronLeft, AlertCircle
 } from 'lucide-react';
 import { conversationsAPI, analyticsAPI } from '../api';
 import useAuthStore from '../store/authStore';
-
-const mockStats = {
-  totalConversations: 48,
-  activeConversations: 12,
-  totalMessages: 326,
-  responseRate: 92,
-  avgResponseTime: '45 ثانية'
-};
-
-const mockTrends = {
-  conversations: { value: 12, positive: true },
-  messages: { value: 23, positive: true },
-  responseTime: { value: 8, positive: true },
-  responseRate: { value: 5, positive: true }
-};
-
-const mockChannelBreakdown = [
-  { _id: 'whatsapp', count: 48, color: '#25D366', name: 'واتس آب' }
-];
-
-const mockRecentConversations = [
-  { _id: 'conv-1', channel: 'whatsapp', contact: { name: 'أحمد علي', phone: '+201012345678' }, lastMessage: { content: 'عايز أعرف سعر الباقة المناسبة ليا' }, status: 'active', unread: 2, time: '10:30 ص' },
-  { _id: 'conv-2', channel: 'whatsapp', contact: { name: 'سارة محمود', phone: '+201098765432' }, lastMessage: { content: 'تمام، شكراً على الرد السريع 🙏' }, status: 'resolved', unread: 0, time: '09:45 ص' },
-  { _id: 'conv-3', channel: 'whatsapp', contact: { name: 'محمد خالد', phone: '+201112223334' }, lastMessage: { content: 'هل عندكم فرع في الإسكندرية؟' }, status: 'pending', unread: 1, time: 'أمس' },
-  { _id: 'conv-4', channel: 'whatsapp', contact: { name: 'فاطمة أحمد', phone: '+201223334445' }, lastMessage: { content: 'عايز أطلب حجز للعيادة بكرة' }, status: 'active', unread: 3, time: 'أمس' }
-];
-
-const mockQuickStats = [
-  { label: 'قواعد الرد التلقائي', value: 5, link: '/auto-replies' },
-  { label: 'قوالب نشطة', value: 12, link: '/templates' },
-  { label: 'أيام متبقية في الاشتراك', value: 23, link: '/subscription' }
-];
+import toast from 'react-hot-toast';
 
 const Dashboard = () => {
-  const { user } = useAuthStore();
-  const [stats, setStats] = useState(mockStats);
-  const [trends, setTrends] = useState(mockTrends);
-  const [channelBreakdown, setChannelBreakdown] = useState(mockChannelBreakdown);
-  const [recentConversations, setRecentConversations] = useState(mockRecentConversations);
-  const [quickStats, setQuickStats] = useState(mockQuickStats);
+  const { user, isAuthenticated } = useAuthStore();
+  const [stats, setStats] = useState(null);
+  const [trends] = useState({
+    conversations: { value: 12, positive: true },
+    messages: { value: 23, positive: true },
+    responseTime: { value: 8, positive: true },
+    responseRate: { value: 5, positive: true }
+  });
+  const [channelBreakdown, setChannelBreakdown] = useState([]);
+  const [recentConversations, setRecentConversations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (isAuthenticated) {
+      fetchData();
+    }
+  }, [isAuthenticated]);
 
   const fetchData = async () => {
     try {
-      const [statsRes, channelsRes, conversationsRes] = await Promise.allSettled([
-        conversationsAPI.getStats(),
-        analyticsAPI.getChannels(),
-        conversationsAPI.getAll({ limit: 5 })
-      ]);
-
-      const statsData = statsRes.status === 'fulfilled' ? statsRes.value.data : null;
-      const channelData = channelsRes.status === 'fulfilled' ? channelsRes.value.data : null;
-      const conversationsData = conversationsRes.status === 'fulfilled' ? conversationsRes.value.data : null;
-
-      if (statsData) {
+      setLoading(true);
+      setError(null);
+      
+      console.log('📊 Dashboard: Fetching data...');
+      console.log('🔑 Token:', localStorage.getItem('token')?.substring(0, 20) + '...');
+      
+      // Fetch stats
+      const statsRes = await conversationsAPI.getStats();
+      console.log('📊 Stats response:', statsRes.data);
+      
+      if (statsRes.data?.success) {
+        const statsData = statsRes.data;
         setStats({
-          totalConversations: statsData.conversations?.total || mockStats.totalConversations,
-          activeConversations: statsData.conversations?.active || mockStats.activeConversations,
-          totalMessages: statsData.messages?.total || mockStats.totalMessages,
+          totalConversations: statsData.conversations?.total || 0,
+          activeConversations: statsData.conversations?.active || 0,
+          totalMessages: statsData.messages?.total || 0,
           responseRate: statsData.conversations?.total > 0
             ? Math.round((statsData.conversations.resolved / statsData.conversations.total) * 100)
-            : mockStats.responseRate,
-          avgResponseTime: statsData.avgResponseTime || mockStats.avgResponseTime
+            : 0,
+          avgResponseTime: '45 ثانية'
         });
+        
+        if (statsData.byChannel?.length) {
+          setChannelBreakdown(statsData.byChannel.map(b => ({
+            ...b,
+            color: '#25D366',
+            name: 'واتس آب'
+          })));
+        }
       }
 
-      if (channelData?.breakdown?.length) {
-        setChannelBreakdown(channelData.breakdown.map(b => ({
-          ...b,
-          color: '#25D366',
-          name: 'واتس آب'
-        })));
-      }
-
-      if (conversationsData?.conversations?.length) {
-        setRecentConversations(conversationsData.conversations.map(c => ({
+      // Fetch recent conversations
+      const convRes = await conversationsAPI.getAll({ limit: 5 });
+      console.log('💬 Conversations response:', convRes.data);
+      
+      if (convRes.data?.success && convRes.data.conversations?.length) {
+        setRecentConversations(convRes.data.conversations.map(c => ({
           _id: c._id,
           channel: c.channel || 'whatsapp',
           contact: c.contact || { name: 'مستخدم', phone: '' },
@@ -95,18 +76,23 @@ const Dashboard = () => {
           time: c.lastMessage?.timestamp ? new Date(c.lastMessage.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : 'الآن'
         })));
       }
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+
+      toast.success('تم تحميل البيانات');
+    } catch (err) {
+      console.error('❌ Dashboard fetch error:', err);
+      console.error('Response:', err.response?.data);
+      setError(err.response?.data?.error || 'فشل في تحميل البيانات');
+      toast.error('فشل في تحميل البيانات');
     } finally {
       setLoading(false);
     }
   };
 
   const statsCards = [
-    { title: 'المحادثات اليوم', value: stats.totalConversations, icon: MessageSquare, trend: trends.conversations, color: 'primary' },
-    { title: 'محادثات نشطة', value: stats.activeConversations, icon: Users, trend: trends.conversations, color: 'green' },
-    { title: 'إجمالي الرسائل', value: stats.totalMessages, icon: BarChart3, trend: trends.messages, color: 'purple' },
-    { title: 'معدل الرضا', value: `${stats.responseRate}%`, icon: TrendingUp, trend: trends.responseRate, color: 'yellow' }
+    { title: 'المحادثات اليوم', value: stats?.totalConversations || 0, icon: MessageSquare, trend: trends.conversations, color: 'primary' },
+    { title: 'محادثات نشطة', value: stats?.activeConversations || 0, icon: Users, trend: trends.conversations, color: 'green' },
+    { title: 'إجمالي الرسائل', value: stats?.totalMessages || 0, icon: BarChart3, trend: trends.messages, color: 'purple' },
+    { title: 'معدل الرضا', value: `${stats?.responseRate || 0}%`, icon: TrendingUp, trend: trends.responseRate, color: 'yellow' }
   ];
 
   const quickActions = [
@@ -116,12 +102,45 @@ const Dashboard = () => {
     { icon: Crown, label: 'الاشتراك', link: '/subscription', color: 'yellow', available: true }
   ];
 
+  const quickStats = [
+    { label: 'قواعد الرد التلقائي', value: 5, link: '/auto-replies' },
+    { label: 'قوالب نشطة', value: 12, link: '/templates' },
+    { label: 'أيام متبقية في الاشتراك', value: 23, link: '/subscription' }
+  ];
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <AlertCircle className="w-12 h-12 text-yellow-400 mb-4" />
+        <p className="text-gray-400">يرجى تسجيل الدخول</p>
+        <Link to="/login" className="btn-primary mt-4">تسجيل الدخول</Link>
+      </div>
+    );
+  }
+
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500" /></div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500" />
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
+      {/* Error Banner */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-400" />
+          <div className="flex-1">
+            <p className="text-red-400 font-medium">{error}</p>
+          </div>
+          <button onClick={fetchData} className="text-red-400 hover:underline text-sm">
+            إعادة المحاولة
+          </button>
+        </div>
+      )}
+
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -192,18 +211,27 @@ const Dashboard = () => {
             </h3>
             <span className="text-xs text-gray-500">واتس آب فقط</span>
           </div>
-          <div className="space-y-4">
-            {channelBreakdown.map((item) => (
-              <div key={item._id} className="flex items-center gap-4">
-                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: item.color }} />
-                <span className="flex-1 font-medium">{item.name}</span>
-                <div className="w-48 h-3 bg-dark-700 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: '100%', background: item.color }} />
+          
+          {channelBreakdown.length > 0 ? (
+            <div className="space-y-4">
+              {channelBreakdown.map((item) => (
+                <div key={item._id} className="flex items-center gap-4">
+                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: item.color }} />
+                  <span className="flex-1 font-medium">{item.name}</span>
+                  <div className="w-48 h-3 bg-dark-700 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: '100%', background: item.color }} />
+                  </div>
+                  <span className="text-sm text-gray-400 w-12 text-left font-medium">{item.count}</span>
                 </div>
-                <span className="text-sm text-gray-400 w-12 text-left font-medium">{item.count}</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-400">
+              <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p>لا توجد محادثات بعد</p>
+              <Link to="/channels" className="text-primary-500 text-sm hover:underline">توصيل واتس آب</Link>
+            </div>
+          )}
           
           {/* Mini Chart Visualization */}
           <div className="mt-6 pt-6 border-t border-dark-700">
@@ -235,34 +263,42 @@ const Dashboard = () => {
               عرض الكل <ChevronLeft className="w-4 h-4" />
             </Link>
           </div>
-          <div className="space-y-3">
-            {recentConversations.map((conv) => (
-              <Link key={conv._id} to={`/conversations/${conv._id}`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg bg-whatsapp/20">📱</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="font-medium truncate">{conv.contact.name}</p>
-                    <span className="text-xs text-gray-500">{conv.time}</span>
+          
+          {recentConversations.length > 0 ? (
+            <div className="space-y-3">
+              {recentConversations.map((conv) => (
+                <Link key={conv._id} to={`/conversations/${conv._id}`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg bg-whatsapp/20">📱</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-medium truncate">{conv.contact.name}</p>
+                      <span className="text-xs text-gray-500">{conv.time}</span>
+                    </div>
+                    <p className="text-sm text-gray-500 truncate">{conv.lastMessage.content}</p>
                   </div>
-                  <p className="text-sm text-gray-500 truncate">{conv.lastMessage.content}</p>
-                </div>
-                <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${
-                    conv.status === 'active' ? 'bg-green-500/20 text-green-400' :
-                    conv.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-primary-500/20 text-primary-400'
-                  }`}>
-                    {conv.status === 'active' ? 'نشط' : conv.status === 'pending' ? 'معلق' : 'محلول'}
-                  </span>
-                  {conv.unread > 0 && (
-                    <span className="bg-whatsapp text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                      {conv.unread}
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${
+                      conv.status === 'active' ? 'bg-green-500/20 text-green-400' :
+                      conv.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                      'bg-primary-500/20 text-primary-400'
+                    }`}>
+                      {conv.status === 'active' ? 'نشط' : conv.status === 'pending' ? 'معلق' : 'محلول'}
                     </span>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
+                    {conv.unread > 0 && (
+                      <span className="bg-whatsapp text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                        {conv.unread}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-400">
+              <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p>لا توجد محادثات</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -300,7 +336,7 @@ const Dashboard = () => {
             </div>
             <div>
               <p className="text-gray-400 text-sm">متوسط وقت الرد</p>
-              <p className="text-2xl font-bold">{stats.avgResponseTime}</p>
+              <p className="text-2xl font-bold">{stats?.avgResponseTime || '45 ثانية'}</p>
             </div>
           </div>
           <div className="text-right">
