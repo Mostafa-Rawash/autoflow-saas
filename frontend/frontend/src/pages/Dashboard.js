@@ -9,6 +9,8 @@ import useAuthStore from '../store/authStore';
 import toast from 'react-hot-toast';
 
 const Dashboard = () => {
+  console.log('🚀 Dashboard component mounted!');
+  
   const { user, isAuthenticated, fetchUser } = useAuthStore();
   const location = useLocation();
   const [stats, setStats] = useState(null);
@@ -25,10 +27,13 @@ const Dashboard = () => {
 
   // Check token on mount
   const hasToken = localStorage.getItem('token');
+  console.log('🔑 hasToken:', hasToken ? 'YES' : 'NO');
 
   // Fetch data on mount if token exists
   useEffect(() => {
+    console.log('📌 useEffect running...');
     const token = localStorage.getItem('token');
+    console.log('🔑 Token in useEffect:', token ? 'YES' : 'NO');
     if (token) {
       fetchData();
     } else {
