@@ -11,11 +11,16 @@ const useAuthStore = create(
       loading: false,
       error: null,
 
-      login: async (email, password) => {
+      login: async (email, password, rememberMe = true) => {
         set({ loading: true, error: null });
         try {
-          const { data } = await authAPI.login({ email, password });
-          localStorage.setItem('token', data.token);
+          const credentials = { email, password };
+          const { data } = await authAPI.login(credentials);
+          if (rememberMe) {
+            localStorage.setItem('token', data.token);
+          } else {
+            sessionStorage.setItem('token', data.token);
+          }
           set({
             user: data.user,
             token: data.token,
@@ -24,9 +29,16 @@ const useAuthStore = create(
           });
           return { success: true };
         } catch (error) {
-          const message = error.response?.data?.error || 'Login failed';
-          set({ loading: false, error: message });
-          return { success: false, error: message };
+          const status = error.response?.status;
+          const rawMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Login failed';
+          const normalizedMessage =
+            status === 429 ||
+            String(rawMessage).toLowerCase().includes('too many requests') ||
+            String(rawMessage).toLowerCase().includes('rate limit')
+              ? 'طلبات كثيرة جدًا. من فضلك انتظر قليلًا ثم حاول مرة أخرى.'
+              : rawMessage;
+          set({ loading: false, error: normalizedMessage });
+          return { success: false, error: normalizedMessage };
         }
       },
 
@@ -43,14 +55,22 @@ const useAuthStore = create(
           });
           return { success: true };
         } catch (error) {
-          const message = error.response?.data?.error || 'Registration failed';
-          set({ loading: false, error: message });
-          return { success: false, error: message };
+          const status = error.response?.status;
+          const rawMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Registration failed';
+          const normalizedMessage =
+            status === 429 ||
+            String(rawMessage).toLowerCase().includes('too many requests') ||
+            String(rawMessage).toLowerCase().includes('rate limit')
+              ? 'طلبات كثيرة جدًا. من فضلك انتظر قليلًا ثم حاول مرة أخرى.'
+              : rawMessage;
+          set({ loading: false, error: normalizedMessage });
+          return { success: false, error: normalizedMessage };
         }
       },
 
       logout: () => {
         localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         set({
           user: null,
           token: null,
@@ -60,7 +80,7 @@ const useAuthStore = create(
       },
 
       fetchUser: async () => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if (!token) {
           set({ loading: false });
           return;

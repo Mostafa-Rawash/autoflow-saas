@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
 import useAuthStore from '../store/authStore';
@@ -11,29 +11,39 @@ const Login = () => {
     email: '',
     password: ''
   });
+  const [rememberMe, setRememberMe] = useState(true);
   const { login, loading, error, clearError } = useAuthStore();
+
+  useEffect(() => {
+    clearError();
+  }, [clearError]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const result = await login(formData.email, formData.password);
+    const result = await login(formData.email, formData.password, rememberMe);
     
     if (result.success) {
       toast.success('تم تسجيل الدخول بنجاح!');
       // Redirect to dashboard
       navigate('/');
     } else {
-      toast.error(result.error || 'فشل تسجيل الدخول');
+      const msg = String(result.error || 'فشل تسجيل الدخول').toLowerCase();
+      if (msg.includes('too many requests') || msg.includes('rate limit') || msg.includes('429')) {
+        toast.error('طلبات كثيرة جدًا. من فضلك انتظر قليلًا ثم حاول مرة أخرى.');
+      } else {
+        toast.error(result.error || 'فشل تسجيل الدخول');
+      }
     }
   };
 
   return (
-    <div className="min-h-screen bg-dark-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       {/* Background effects */}
       <div className="fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50"></div>
         <div className="absolute inset-0 opacity-20" style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0, 212, 170, 0.15) 1px, transparent 0)`,
+          backgroundImage: `radial-gradient(circle at 1px 1px, rgba(14, 165, 233, 0.12) 1px, transparent 0)`,
           backgroundSize: '40px 40px'
         }}></div>
       </div>
@@ -42,17 +52,17 @@ const Login = () => {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-whatsapp to-primary-500 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center">
               <span className="text-2xl">📱</span>
             </div>
-            <span className="text-2xl font-bold gradient-text">AutoFlow</span>
+            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-sky-600 to-blue-500">AutoFlow</span>
           </Link>
           <h1 className="text-2xl font-bold mt-6 mb-2">مرحباً بعودتك! 👋</h1>
-          <p className="text-gray-400">سجل دخولك للوصول للوحة التحكم</p>
+          <p className="text-slate-500">سجل دخولك للوصول للوحة التحكم</p>
         </div>
 
         {/* Form */}
-        <div className="glass rounded-2xl p-8">
+        <div className="card p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email */}
             <div>
@@ -63,7 +73,7 @@ const Login = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full bg-dark-800 border border-dark-600 rounded-lg py-3 pr-10 pl-4 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition"
+                  className="w-full bg-white border border-slate-300 rounded-xl py-3 pr-10 pl-4 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition"
                   placeholder="example@email.com"
                   required
                 />
@@ -79,24 +89,37 @@ const Login = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full bg-dark-800 border border-dark-600 rounded-lg py-3 pr-10 pl-10 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition"
+                  className="w-full bg-white border border-slate-300 rounded-xl py-3 pr-10 pl-10 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
 
+            {/* Remember me */}
+            <label className="flex items-center gap-2 text-sm text-slate-600 select-none">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+              />
+              <span>تذكرني على هذا الجهاز فقط</span>
+            </label>
+
             {/* Error */}
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-red-400 text-sm">
-                {error}
+              <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-rose-700 text-sm">
+                {(error || '').toLowerCase().includes('too many requests') || (error || '').toLowerCase().includes('rate limit') || (error || '').includes('429')
+                  ? 'طلبات كثيرة جدًا. من فضلك انتظر قليلًا ثم حاول مرة أخرى.'
+                  : error}
               </div>
             )}
 
@@ -120,17 +143,17 @@ const Login = () => {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-dark-600"></div>
+              <div className="w-full border-t border-slate-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-dark-900 text-gray-500">أو</span>
+              <span className="px-2 bg-slate-50 text-slate-500">أو</span>
             </div>
           </div>
 
           {/* Register link */}
-          <p className="text-center text-gray-400">
+          <p className="text-center text-slate-500">
             ليس لديك حساب؟{' '}
-            <Link to="/register" className="text-primary-500 hover:underline">
+            <Link to="/register" className="text-sky-600 hover:underline">
               سجل الآن
             </Link>
           </p>
