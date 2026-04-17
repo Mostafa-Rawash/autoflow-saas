@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 
+console.log('📄 Dashboard.js file loaded');
+
 const Dashboard = () => {
+  console.log('🚀 Dashboard component function called');
+  
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    console.log('🚀 Dashboard useEffect running');
+    console.log('📊 Dashboard useEffect running');
     fetchData();
   }, []);
 

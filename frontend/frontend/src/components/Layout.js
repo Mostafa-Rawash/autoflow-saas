@@ -42,9 +42,12 @@ const adminMenuItems = [
 ];
 
 const Layout = ({ children }) => {
+  console.log('🏗️ Layout rendering, children:', children?.type?.name || 'unknown');
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const { user, logout } = useAuthStore();
   const location = useLocation();
+  
+  console.log('📍 Current location:', location.pathname);
 
   return (
     <div className="min-h-screen bg-dark-950">
