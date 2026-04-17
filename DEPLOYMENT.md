@@ -1,165 +1,90 @@
-# AutoFlow Production Deployment Guide
+# 🚀 AutoFlow SaaS - Deployment Checklist
 
-## Prerequisites
+## Pre-Deployment
 
-- Node.js 18+
-- PM2 (`npm install -g pm2`)
-- Nginx
-- MongoDB (local or Atlas)
-- SSL certificates (Let's Encrypt)
+### 1. Environment Setup
+- [ ] Copy `.env.example` to `.env`
+- [ ] Set `JWT_SECRET` (generate secure key)
+- [ ] Set `MONGODB_URI` for production database
+- [ ] Set `FRONTEND_URL` to production domain
+- [ ] Configure `REDIS_URL` (optional, for caching)
+- [ ] Set `NODE_ENV=production`
 
-## 1. Environment Setup
+### 2. Database
+- [ ] Create MongoDB database (Atlas or self-hosted)
+- [ ] Run seed script: `npm run seed`
+- [ ] Set `SUPER_ADMIN_EMAIL` for admin account
+- [ ] Verify admin login works
 
-### Backend Environment Variables
+### 3. Security
+- [ ] Ensure `JWT_SECRET` is 64+ character random string
+- [ ] Verify HTTPS is enabled (via nginx/SSL)
+- [ ] Check CORS settings match production domain
+- [ ] Review rate limiting settings
+- [ ] Enable Helmet.js security headers (already on)
 
-Create `frontend/backend/.env`:
-
-```env
-NODE_ENV=production
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/autoflow
-JWT_SECRET=your_secure_jwt_secret_here
-FRONTEND_URL=https://your-domain.com
-
-# Payment Gateway (optional)
-PAYMOB_API_KEY=your_paymob_key
-PAYMOB_INTEGRATION_ID=your_integration_id
-PAYMOB_IFRAME_ID=your_iframe_id
-PAYMOB_HMAC_SECRET=your_hmac_secret
-
-# AI Service
-GEMINI_API_KEY=your_gemini_key
-```
-
-### WhatsApp Service Environment
-
-Create `whatsapp-service/.env`:
-
-```env
-GEMINI_ROBOT_API_KEY=your_gemini_key
-AUTHORIZED_NUMBERS=+2010xxxx,+2011xxxx
-SESSION_SAVE_PATH=/var/lib/autoflow/sessions
-```
-
-## 2. Install Dependencies
-
+### 4. Frontend Build
 ```bash
-# Backend
-cd frontend/backend
-npm install --production
-
-# Frontend
-cd ../frontend
-npm install
-npm run build
-
-# WhatsApp Service
-cd ../../whatsapp-service
-npm install --production
-
-# Landing Pages
-cd ../landing-pages
-npm install
+cd frontend
 npm run build
 ```
+- [ ] Serve `build/` folder with nginx
+- [ ] Configure SPA routing (all routes → index.html)
 
-## 3. PM2 Configuration
-
-Create `ecosystem.config.js`:
-
-```javascript
-module.exports = {
-  apps: [
-    {
-      name: 'autoflow-backend',
-      cwd: './frontend/backend',
-      script: 'server.js',
-      instances: 2,
-      exec_mode: 'cluster',
-      env_production: {
-        NODE_ENV: 'production',
-        PORT: 5000
-      }
-    },
-    {
-      name: 'autoflow-landing',
-      cwd: './landing-pages',
-      script: 'server.js',
-      instances: 1,
-      env_production: {
-        PORT: 8080
-      }
-    },
-    {
-      name: 'autoflow-frontend',
-      cwd: './frontend/frontend',
-      script: 'server.js',
-      instances: 1,
-      env_production: {
-        PORT: 8081
-      }
-    },
-    {
-      name: 'whatsapp-service',
-      cwd: './whatsapp-service/src',
-      script: 'server.js',
-      instances: 1,
-      env_production: {
-        PORT: 3002
-      }
-    }
-  ]
-};
+### 5. Backend Production
+```bash
+cd backend
+npm install --production
+npm start
 ```
+- [ ] Use PM2 for process management
+- [ ] Configure log rotation
+- [ ] Set up monitoring
 
-Start services:
+---
+
+## Production Server Setup
+
+### PM2 Configuration
 
 ```bash
-pm2 start ecosystem.config.js --env production
+# Install PM2 globally
+npm install -g pm2
+
+# Start application
+pm2 start server.js --name autoflow-api
+
+# Save PM2 config
 pm2 save
+
+# Startup on boot
 pm2 startup
 ```
 
-## 4. Nginx Configuration
-
-Create `/etc/nginx/sites-available/autoflow`:
+### Nginx Configuration
 
 ```nginx
+# /etc/nginx/sites-available/autoflow
 server {
     listen 80;
-    server_name your-domain.com www.your-domain.com;
+    server_name yourdomain.com;
     return 301 https://$server_name$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name your-domain.com www.your-domain.com;
+    server_name yourdomain.com;
 
-    ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
 
-    # Landing Pages
+    # Frontend
     location / {
-        proxy_pass http://localhost:8080;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
+        root /var/www/autoflow/frontend/build;
+        try_files $uri $uri/ /index.html;
     }
 
-    # Dashboard
-    location /app {
-        rewrite ^/app(.*)$ $1 break;
-        proxy_pass http://localhost:8081;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-
-    # API
+    # Backend API
     location /api {
         proxy_pass http://localhost:5000;
         proxy_http_version 1.1;
@@ -169,7 +94,7 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
 
-    # WebSocket
+    # Socket.io
     location /socket.io {
         proxy_pass http://localhost:5000;
         proxy_http_version 1.1;
@@ -177,111 +102,195 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
     }
+
+    # Health check
+    location /health {
+        proxy_pass http://localhost:5000;
+    }
 }
 ```
 
-Enable site:
+### Environment Variables (Production)
 
-```bash
-sudo ln -s /etc/nginx/sites-available/autoflow /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
+```env
+# Required
+JWT_SECRET=<64-char-random-string>
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/autoflow
+FRONTEND_URL=https://yourdomain.com
+
+# Recommended
+NODE_ENV=production
+PORT=5000
+REDIS_URL=redis://redis-server:6379
+MAX_WHATSAPP_CLIENTS=20
+
+# Admin
+SUPER_ADMIN_EMAIL=admin@yourdomain.com
 ```
 
-## 5. SSL Certificates (Let's Encrypt)
+---
 
+## WhatsApp Setup
+
+### Dependencies (Linux)
 ```bash
-sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d your-domain.com -d www.your-domain.com
+# Chrome dependencies for Puppeteer
+sudo apt-get update
+sudo apt-get install -y \
+  gconf-service \
+  libasound2 \
+  libatk1.0-0 \
+  libc6 \
+  libcairo2 \
+  libcups2 \
+  libdbus-1-3 \
+  libexpat1 \
+  libfontconfig1 \
+  libgcc1 \
+  libgconf-2-4 \
+  libgdk-pixbuf2.0-0 \
+  libglib2.0-0 \
+  libgtk-3-0 \
+  libnspr4 \
+  libpango-1.0-0 \
+  libpangocairo-1.0-0 \
+  libstdc++6 \
+  libx11-6 \
+  libx11-xcb1 \
+  libxcb1 \
+  libxcomposite1 \
+  libxcursor1 \
+  libxdamage1 \
+  libxext6 \
+  libxfixes3 \
+  libxi6 \
+  libxrandr2 \
+  libxrender1 \
+  libxss1 \
+  libxtst6 \
+  ca-certificates \
+  fonts-liberation \
+  libappindicator1 \
+  libnss3 \
+  lsb-release \
+  xdg-utils \
+  wget
 ```
 
-## 6. MongoDB Setup
+### Session Storage
+- [ ] Create `./sessions` directory
+- [ ] Set appropriate permissions
+- [ ] Consider persistent volume for sessions
 
-### Local MongoDB
+---
 
+## Monitoring
+
+### Health Check Endpoint
 ```bash
-# Install MongoDB
-sudo apt install mongodb
-
-# Start service
-sudo systemctl start mongodb
-sudo systemctl enable mongodb
+curl https://yourdomain.com/health
+# Expected: {"status":"ok","timestamp":"..."}
 ```
 
-### MongoDB Atlas
-
-1. Create cluster at mongodb.com
-2. Whitelist server IP
-3. Update `MONGODB_URI` in `.env`
-
-## 7. Monitoring & Logs
-
+### Log Monitoring
 ```bash
-# View logs
-pm2 logs
+# PM2 logs
+pm2 logs autoflow-api
 
-# Monitor
-pm2 monit
+# Nginx logs
+tail -f /var/log/nginx/access.log
+tail -f /var/log/nginx/error.log
+```
 
+### Recommended Alerts
+- [ ] API response time > 500ms
+- [ ] Error rate > 1%
+- [ ] MongoDB connection failures
+- [ ] WhatsApp disconnections
+- [ ] Memory usage > 80%
+- [ ] Disk usage > 80%
+
+---
+
+## Backup Strategy
+
+### MongoDB Backup
+```bash
+# Daily backup script
+mongodump --uri="$MONGODB_URI" --out=/backup/$(date +%Y%m%d)
+
+# Retain 7 days
+find /backup -type d -mtime +7 -exec rm -rf {} +
+```
+
+### Session Backup
+```bash
+# Backup WhatsApp sessions
+tar -czf sessions-$(date +%Y%m%d).tar.gz ./sessions/
+```
+
+---
+
+## Post-Deployment Tests
+
+### API Tests
+```bash
 # Health check
-node health-check.js
+curl https://yourdomain.com/health
 
-# QA check
-node qa-check.js
+# API info
+curl https://yourdomain.com/api
+
+# Register user
+curl -X POST https://yourdomain.com/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test","email":"test@test.com","password":"Test123!"}'
+
+# Login
+curl -X POST https://yourdomain.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@test.com","password":"Test123!"}'
 ```
 
-## 8. Backup Strategy
-
-### Database Backup
-
-```bash
-# Create backup script
-cat > /usr/local/bin/autoflow-backup.sh << 'EOF'
-#!/bin/bash
-DATE=$(date +%Y%m%d_%H%M%S)
-mongodump --db autoflow --out /backups/$DATE
-find /backups -type d -mtime +30 -exec rm -rf {} \;
-EOF
-
-chmod +x /usr/local/bin/autoflow-backup.sh
-
-# Add to crontab
-echo "0 2 * * * /usr/local/bin/autoflow-backup.sh" | crontab -
+### WebSocket Test
+```javascript
+// Browser console
+const socket = io('https://yourdomain.com');
+socket.on('connect', () => console.log('Connected!'));
 ```
 
-## 9. Security Checklist
+---
 
-- [ ] Firewall configured (ufw)
-- [ ] SSH key-only authentication
-- [ ] Fail2ban installed
-- [ ] SSL enabled
-- [ ] Environment variables secured
-- [ ] MongoDB authentication enabled
-- [ ] Rate limiting configured
-- [ ] CORS properly configured
+## Scaling Considerations
 
-## 10. Quick Commands
+### Vertical Scaling
+- Increase RAM for more WhatsApp clients
+- Each WhatsApp client: ~150-200MB RAM
+- Default max clients: 10 (configurable)
 
-```bash
-# Restart all services
-pm2 restart all
+### Horizontal Scaling
+- Use Redis for Socket.io adapter
+- Configure sticky sessions for WebSocket
+- Load balance with nginx upstream
 
-# View status
-pm2 status
-
-# Pull latest code and redeploy
-git pull
-pm2 restart all
-
-# Emergency: stop everything
-pm2 stop all
-
-# Emergency: check logs
-pm2 logs --lines 100
+### Multi-Instance Setup
+```javascript
+// Add to server.js for Socket.io clustering
+const { createAdapter } = require('@socket.io/redis-adapter');
+const pubClient = new Redis(process.env.REDIS_URL);
+const subClient = pubClient.duplicate();
+io.adapter(createAdapter(pubClient, subClient));
 ```
+
+---
 
 ## Support
 
-- Email: mostafa@rawash.com
-- WhatsApp: +201099129550
-- GitHub: https://github.com/Mostafa-Rawash/autoflow-saas
+- **Docs**: `/QUICKSTART.md`, `/FIXES_SUMMARY.md`
+- **Health**: `GET /health`
+- **API Info**: `GET /api`
+- **Tests**: `npm test`
+
+---
+
+**Deployment complete when all checkboxes are verified ✅**

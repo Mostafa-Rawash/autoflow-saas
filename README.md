@@ -1,181 +1,168 @@
-# AutoFlow SaaS
+# AutoFlow SaaS 🚀
 
-🚀 **Multi-channel communication automation platform for MENA businesses**
+منصة اتصال ذكية متعددة القنوات - MERN Stack
 
-## 🎯 Overview
+## ✨ المميزات الرئيسية
 
-AutoFlow is an AI-powered customer communication platform that helps Arabic-speaking businesses automate their customer support across multiple channels, starting with WhatsApp.
+### SaaS Features
+- 🔐 **Multi-tenant** - كل مستخدم لديه مساحة معزولة
+- 👥 **Team Management** - دعوة أعضاء وإدارة صلاحيات
+- 💳 **Subscription System** - 4 خطط مع حدود واضحة
+- 📊 **Admin Dashboard** - إدارة المستخدمين والاشتراكات
+- 🔒 **Role-Based Access** - 5 أدوار مع صلاحيات دقيقة
 
-## ✨ Features
+### Communication Channels
+- 📱 **WhatsApp** - توصيل فوري عبر QR (مجاني!)
+- 💬 **Messenger** - قريباً
+- 📷 **Instagram** - قريباً
+- ✈️ **Telegram** - قريباً
+- 📧 **Email/SMS** - قريباً
 
-### Current (MVP)
+### Technical Features
+- ⚡ **Real-time** - Socket.io للرسائل الفورية
+- 🎨 **RTL Support** - دعم كامل للعربية
+- 🌙 **Dark Mode** - تصميم عصري
+- 📱 **Responsive** - يعمل على جميع الأجهزة
 
-- 📱 **WhatsApp Integration** - Connect via QR code or API
-- 🤖 **Auto-Reply System** - Automated responses with keyword matching
-- 💬 **Conversation Management** - Real-time message handling
-- 👤 **User Authentication** - Secure login with session persistence
-- 🌐 **Arabic-First UI** - RTL support with Egyptian Arabic dialect
-- 💳 **Subscription Plans** - Starting at 2,000 EGP/month
+## 🎯 نظرة عامة
 
-### Coming Soon
+AutoFlow منصة SaaS توحد كل قنوات التواصل (WhatsApp, Messenger, Instagram, Telegram, وغيره) في لوحة تحكم واحدة مع أتمتة ذكية بالذكاء الاصطناعي.
 
-- 💬 Messenger Integration
-- 📷 Instagram Integration
-- ✈️ Telegram Integration
-- 📊 Analytics Dashboard
-- 👥 Team Management
-- 📝 Message Templates
+## 🏗️ البنية التقنية
 
-## 🏗️ Architecture
-
+### Backend (Node.js + Express + MongoDB)
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Frontend      │     │  WhatsApp       │     │   AI Service    │
-│   (React)       │────▶│  Service        │────▶│   (Gemini)      │
-│   Port: 3001    │     │   Port: 3002    │     │   Port: 3001    │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-         │                                               │
-         ▼                                               ▼
-┌─────────────────┐                           ┌─────────────────┐
-│   Backend API   │                           │   Database      │
-│   (Express)     │                           │   (MongoDB)     │
-│   Port: 5000    │                           │                 │
-└─────────────────┘                           └─────────────────┘
+backend/
+├── models/          # Mongoose models
+│   ├── User.js
+│   ├── Conversation.js
+│   ├── Message.js
+│   ├── Template.js
+│   └── Integration.js
+├── routes/          # API routes
+│   ├── auth.js
+│   ├── users.js
+│   ├── conversations.js
+│   ├── channels.js
+│   ├── templates.js
+│   ├── webhooks.js
+│   └── analytics.js
+├── middleware/      # Auth & validation
+└── server.js        # Entry point
 ```
 
-> **Note:** Landing pages are in a separate repository: `autoflow-landing-pages`
+### Frontend (React + Tailwind CSS)
+```
+frontend/
+├── src/
+│   ├── api/         # Axios API client
+│   ├── store/       # Zustand state management
+│   ├── components/  # Reusable components
+│   └── pages/       # Page components
+│       ├── Login.js
+│       ├── Register.js
+│       ├── Dashboard.js
+│       └── ...
+└── public/
+```
 
-## 🛠️ Tech Stack
+## 🚀 التشغيل
 
-| Component    | Technology                   |
-| ------------ | ---------------------------- |
-| **Frontend** | React, Tailwind CSS, Zustand |
-| **Backend**  | Node.js, Express, Socket.io  |
-| **WhatsApp** | whatsapp-web.js (Puppeteer)  |
-| **AI**       | Google Gemini API            |
-| **Database** | MongoDB (Mongoose)           |
-| **Auth**     | JWT, bcrypt                  |
-
-## 🚀 Quick Start
-
-### Prerequisites
-
+### 1. المتطلبات
 - Node.js 18+
-- MongoDB
-- Gemini API Key
+- MongoDB (محلي أو Atlas)
+- npm أو yarn
 
-### Installation
-
+### 2. إعداد Backend
 ```bash
-# Clone the repository
-git clone https://github.com/Mostafa-Rawash/autoflow-saas.git
-cd autoflow-saas
-
-# Install dependencies
-cd frontend && npm install
-cd ../whatsapp-service && npm install
-cd ../ai-service && npm install
-
-# Set up environment variables
+cd backend
+npm install
 cp .env.example .env
-# Edit .env with your credentials
-
-# Start services
-npm run dev  # in each service directory
+# عدّل .env بمعلوماتك
+npm run dev
 ```
 
-### Environment Variables
-
-```env
-# Backend
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/autoflow
-JWT_SECRET=your_jwt_secret
-
-# WhatsApp Service
-WHAPI_PORT=3002
-GEMINI_API_KEY=your_gemini_key
-
-# Frontend
-REACT_APP_API_URL=http://localhost:5000
+### 3. إعداد Frontend
+```bash
+cd frontend
+npm install
+cp .env.example .env
+npm start
 ```
 
-## 📦 Project Structure
+### 4. الوصول
+- Frontend: http://localhost:3000
+- Backend: http://localhost:5000
+- API Docs: http://localhost:5000/api/docs
 
-```
-autoflow-saas/
-├── frontend/           # React dashboard
-│   ├── backend/        # Express API + MongoDB
-│   └── frontend/      # React UI (Tailwind, Zustand)
-├── whatsapp-service/   # WhatsApp Web.js integration
-│   ├── src/
-│   └── session/
-├── ai-service/         # Gemini AI processing
-│   ├── prompts/
-│   └── processors/
-└── README.md
-```
+## 📊 الميزات
 
-> **Landing pages:** See `autoflow-landing-pages` repository
+### ✅ المكتمل
+- [x] نظام المصادقة (JWT)
+- [x] إدارة المستخدمين
+- [x] لوحة تحكم تفاعلية
+- [x] تصميم RTL عربي
+- [x] تصميم dark mode
+- [x] Responsive design
 
-## 💰 Pricing
+### 🔄 قيد التطوير
+- [ ] تكامل WhatsApp Business API
+- [ ] تكامل Messenger
+- [ ] تكامل Instagram
+- [ ] تكامل Telegram
+- [ ] محادثات real-time (Socket.io)
+- [ ] قوالب رسائل
+- [ ] تحليلات متقدمة
+- [ ] إدارة الفريق
 
-| Plan           | Monthly   | Yearly     | Channels     |
-| -------------- | --------- | ---------- | ------------ |
-| **Starter** ⭐ | 2,000 EGP | 20,000 EGP | 1 (WhatsApp) |
-| **Standard**   | 4,000 EGP | 40,000 EGP | 3            |
-| **Premium**    | 8,000 EGP | 80,000 EGP | 8            |
+## 🔌 التكاملات المدعومة
 
-All plans include 14-day free trial.
+| القناة | الحالة |
+|--------|--------|
+| WhatsApp Business API | 🔄 قيد التطوير |
+| Facebook Messenger | 🔄 قيد التطوير |
+| Instagram DM | 🔄 قيد التطوير |
+| Telegram Bot | 🔄 قيد التطوير |
+| Live Chat | 📋 مخطط |
+| Email (SMTP) | 📋 مخطط |
+| SMS (Twilio) | 📋 مخطط |
+| API مفتوح | 📋 مخطط |
 
-## 🌐 Live Demo
+## 🔒 الأمان
 
-- **Dashboard:** http://52.249.222.161:3001
+- Helmet.js للحماية
+- Rate limiting
+- JWT Authentication
+- Password hashing (bcrypt)
+- CORS configuration
+- Input validation
 
-**Demo Credentials:**
+## 📱 التصميم
 
-- Email: `mostafa@rawash.com`
-- Password: `Test123456`
+- **Dark Mode** - تصميم داكن عصري
+- **RTL Support** - دعم كامل للعربية
+- **Glassmorphism** - تأثيرات شفافة
+- **Mobile First** - تصميم للموبايل أولاً
 
-## 🗺️ Roadmap
+## 🛠️ التقنيات
 
-### Phase 1: MVP (12 days)
+| المجال | التقنية |
+|--------|---------|
+| Frontend | React 18 |
+| Styling | Tailwind CSS |
+| State | Zustand |
+| Backend | Express.js |
+| Database | MongoDB |
+| Auth | JWT |
+| Real-time | Socket.io |
+| HTTP Client | Axios |
 
-- [x] User authentication
-- [ ] WhatsApp QR connection
-- [ ] Auto-reply system
-- [ ] Conversation management
-- [ ] Production deployment
+## 📞 التواصل
 
-### Phase 2: Growth (17 days)
+- Email: mostafa@rawash.com
+- Phone: +201099129550
+- WhatsApp: https://wa.me/201099129550
 
-- [ ] Payment integration (Paymob/Fawry)
-- [ ] Arabic onboarding flow
-- [ ] Message templates
-- [ ] Analytics dashboard
-- [ ] Landing page optimization
+## 📄 الرخصة
 
-### Phase 3: Multi-channel (16 days)
-
-- [ ] Messenger integration
-- [ ] Instagram integration
-- [ ] Telegram integration
-- [ ] Team management
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read our contributing guidelines.
-
-## 📄 License
-
-MIT License - see LICENSE file for details.
-
-## 📧 Contact
-
-- **Email:** mostafa@rawash.com
-- **WhatsApp:** +201099129550
-- **Website:** https://autoflow.com
-
----
-
-Built with ❤️ for MENA businesses
+MIT License

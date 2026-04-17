@@ -1,0 +1,210 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
+const { createServer } = require('http');
+const { Server } = require('socket.io');
+require('dotenv').config();
+
+// Validate required environment variables
+const requiredEnvVars = ['JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingEnvVars.join(', '));
+  console.error('Please set these in your .env file or environment');
+  process.exit(1);
+}
+
+// Warn about optional but recommended env vars
+if (!process.env.MONGODB_URI) {
+  console.warn('⚠️  MONGODB_URI not set - will use in-memory MongoDB (data lost on restart)');
+}
+
+if (!process.env.FRONTEND_URL) {
+  console.warn('⚠️  FRONTEND_URL not set - some CORS features may not work correctly');
+}
+
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+const conversationRoutes = require('./routes/conversations');
+const channelRoutes = require('./routes/channels');
+const templateRoutes = require('./routes/templates');
+const webhookRoutes = require('./routes/webhooks');
+const analyticsRoutes = require('./routes/analytics');
+const subscriptionRoutes = require('./routes/subscriptions');
+const whatsappRoutes = require('./routes/whatsapp');
+const adminRoutes = require('./routes/admin');
+const queueRoutes = require('./routes/queue');
+const Role = require('./models/Role');
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:8080',
+  'http://localhost:8081',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ['GET', 'POST']
+  }
+});
+
+// Security middleware
+app.use(helmet({
+  crossOriginResourcePolicy: false
+}));
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use('/api/', limiter);
+
+// Body parsing
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// Logging
+app.use(morgan('combined'));
+
+// Database connection with in-memory MongoDB for development
+let mongoUri = process.env.MONGODB_URI;
+
+const startServer = async () => {
+  if (!mongoUri || mongoUri.includes('localhost:27017')) {
+    try {
+      const { MongoMemoryServer } = require('mongodb-memory-server');
+      const mongod = await MongoMemoryServer.create();
+      mongoUri = mongod.getUri();
+      console.log('📦 Using in-memory MongoDB for development');
+    } catch (err) {
+      console.log('⚠️  No MongoDB available, running in demo mode');
+    }
+  }
+
+  if (mongoUri) {
+    mongoose.connect(mongoUri)
+    .then(async () => {
+      console.log('✅ MongoDB connected');
+      // Seed default roles
+      await Role.seedDefaults();
+    })
+    .catch(err => console.error('❌ MongoDB connection error:', err.message));
+  }
+
+  // Routes
+  app.use('/api/auth', authRoutes);
+  app.use('/api/users', userRoutes);
+  app.use('/api/conversations', conversationRoutes);
+  app.use('/api/channels', channelRoutes);
+  app.use('/api/templates', templateRoutes);
+  app.use('/api/webhooks', webhookRoutes);
+  app.use('/api/analytics', analyticsRoutes);
+  app.use('/api/subscriptions', subscriptionRoutes);
+  app.use('/api/whatsapp', whatsappRoutes);
+  app.use('/api/admin', adminRoutes);
+  app.use('/api/queue', queueRoutes);
+
+  // Health check
+  app.get('/health', (req, res) => {
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      version: process.env.npm_package_version || '1.0.0',
+      environment: process.env.NODE_ENV || 'development'
+    });
+  });
+
+  // API Version info
+  app.get('/api', (req, res) => {
+    res.json({
+      name: 'AutoFlow API',
+      version: '1.0.0',
+      endpoints: {
+        auth: '/api/auth',
+        users: '/api/users',
+        conversations: '/api/conversations',
+        channels: '/api/channels',
+        templates: '/api/templates',
+        subscriptions: '/api/subscriptions',
+        analytics: '/api/analytics',
+        whatsapp: '/api/whatsapp',
+        webhooks: '/api/webhooks',
+        admin: '/api/admin',
+        queue: '/api/queue'
+      }
+    });
+  });
+
+  // Socket.io for real-time messaging
+  global.io = io; // Make io globally available for services
+  io.on('connection', (socket) => {
+    console.log('Client connected:', socket.id);
+    
+    // User joins their personal room for WhatsApp events
+    socket.on('authenticate', (userId) => {
+      socket.join(`user-${userId}`);
+      console.log(`User ${userId} joined their room`);
+    });
+    
+    // Join conversation room
+    socket.on('join-conversation', (conversationId) => {
+      socket.join(conversationId);
+    });
+    
+    // Leave conversation room
+    socket.on('leave-conversation', (conversationId) => {
+      socket.leave(conversationId);
+    });
+    
+    // Send message event
+    socket.on('send-message', (data) => {
+      io.to(data.conversationId).emit('new-message', data);
+    });
+    
+    // Disconnect
+    socket.on('disconnect', () => {
+      console.log('Client disconnected:', socket.id);
+    });
+  });
+
+  // Error handling
+  app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ 
+      error: 'Something went wrong!',
+      message: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  });
+
+  const PORT = process.env.PORT || 5000;
+  httpServer.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📡 Socket.io enabled`);
+    
+    // Start message queue processor
+    const { messageQueueService } = require('./services/messageQueue.service');
+    const whatsappService = require('./services/whatsapp.service');
+    messageQueueService.startProcessor(whatsappService, 5000);
+  });
+};
+
+startServer();
+
+module.exports = { app, io };
