@@ -9,7 +9,7 @@ import useAuthStore from '../store/authStore';
 import toast from 'react-hot-toast';
 
 const Dashboard = () => {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, fetchUser } = useAuthStore();
   const [stats, setStats] = useState(null);
   const [trends] = useState({
     conversations: { value: 12, positive: true },
@@ -22,6 +22,14 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Fetch user on mount
+  useEffect(() => {
+    if (!isAuthenticated) {
+      fetchUser();
+    }
+  }, []);
+
+  // Fetch data when authenticated
   useEffect(() => {
     if (isAuthenticated) {
       fetchData();

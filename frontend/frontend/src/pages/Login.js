@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import toast from 'react-hot-toast';
 
 const Login = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -19,6 +20,8 @@ const Login = () => {
     
     if (result.success) {
       toast.success('تم تسجيل الدخول بنجاح!');
+      // Redirect to dashboard
+      navigate('/');
     } else {
       toast.error(result.error || 'فشل تسجيل الدخول');
     }
