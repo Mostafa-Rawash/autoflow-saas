@@ -6,8 +6,11 @@
 const express = require('express');
 const router = express.Router();
 const Log = require('../models/Log');
-const { auth, adminOnly } = require('../middleware/auth');
+const { auth, authorize } = require('../middleware/auth');
 const { api } = require('../utils/logger');
+
+// Admin only middleware using authorize
+const adminOnly = authorize('owner', 'admin', 'manager');
 
 /**
  * @route   GET /api/logs
