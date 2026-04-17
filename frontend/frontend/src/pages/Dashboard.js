@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   MessageSquare, TrendingUp, TrendingDown, Users, Clock, ArrowUpRight, ArrowDownRight, 
   RefreshCw, Smartphone, Zap, BarChart3, Crown, Settings, Bell, ChevronLeft, AlertCircle
@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 
 const Dashboard = () => {
   const { user, isAuthenticated, fetchUser } = useAuthStore();
+  const location = useLocation();
   const [stats, setStats] = useState(null);
   const [trends] = useState({
     conversations: { value: 12, positive: true },
@@ -27,19 +28,21 @@ const Dashboard = () => {
 
   // Fetch data on mount if token exists
   useEffect(() => {
-    if (hasToken) {
+    const token = localStorage.getItem('token');
+    if (token) {
       fetchData();
     } else {
       setLoading(false);
     }
   }, []);
 
-  // Also fetch when user changes
+  // Also re-fetch when redirected from login
   useEffect(() => {
-    if (user && hasToken) {
+    const token = localStorage.getItem('token');
+    if (token && !stats) {
       fetchData();
     }
-  }, [user]);
+  }, [location]);
 
   const fetchData = async () => {
     try {
