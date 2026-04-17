@@ -81,7 +81,23 @@ app.use(morgan('combined'));
 let mongoUri = process.env.MONGODB_URI;
 
 const startServer = async () => {
-  if (!mongoUri || mongoUri.includes('localhost:27017')) {
+  // Check if MongoDB is actually available
+  let useRealMongo = false;
+  
+  if (mongoUri) {
+    try {
+      const { MongoClient } = require('mongodb');
+      const testClient = new MongoClient(mongoUri, { serverSelectionTimeoutMS: 2000 });
+      await testClient.connect();
+      await testClient.close();
+      useRealMongo = true;
+      console.log('🗄️  MongoDB server found at', mongoUri);
+    } catch (err) {
+      console.log('⚠️  MongoDB server not available, falling back to in-memory');
+    }
+  }
+
+  if (!useRealMongo) {
     try {
       const { MongoMemoryServer } = require('mongodb-memory-server');
       const mongod = await MongoMemoryServer.create();
@@ -91,6 +107,7 @@ const startServer = async () => {
       console.log('⚠️  No MongoDB available, running in demo mode');
     }
   }
+
 
   if (mongoUri) {
     mongoose.connect(mongoUri)
