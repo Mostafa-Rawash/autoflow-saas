@@ -7,3 +7,4 @@ export { default as AdminRoles } from './AdminRoles';
 export { default as AdminSubscriptions } from './AdminSubscriptions';
 export { default as AdminInvoices } from './AdminInvoices';
 export { default as AdminActivityLogs } from './AdminActivityLogs';
+export { default as AdminLogs } from './AdminLogs';

@@ -34,6 +34,7 @@ import {
   AdminSubscriptions,
   AdminInvoices,
   AdminActivityLogs,
+  AdminLogs,
 } from "./pages/admin";
 
 // Protected Route
@@ -232,6 +233,14 @@ function App() {
             element={
               <AdminRoute>
                 <AdminActivityLogs />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="admin/system-logs"
+            element={
+              <AdminRoute>
+                <AdminLogs />
               </AdminRoute>
             }
           />

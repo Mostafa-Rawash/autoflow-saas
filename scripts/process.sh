@@ -17,7 +17,7 @@ NC='\033[0m'
 
 # Ports
 BACKEND_PORT=5000
-FRONTEND_PORT=3001
+FRONTEND_PORT=3000
 
 # Directories
 BACKEND_DIR="./frontend/backend"
@@ -94,42 +94,46 @@ start() {
 }
 
 start_backend() {
-    echo "Starting Backend API..."
+    echo "Starting Backend API (dev mode with nodemon)..."
     if check_port $BACKEND_PORT; then
         echo -e "${YELLOW}Backend already running on port $BACKEND_PORT${NC}"
         return
     fi
     
     cd $BACKEND_DIR
-    npm start > ../../logs/backend.log 2>&1 &
+    # Use nodemon for dev mode
+    NODE_ENV=development nodemon server.js > ../../logs/backend.log 2>&1 &
     echo $! > ../../logs/backend.pid
     cd - > /dev/null
     sleep 2
     
     if check_port $BACKEND_PORT; then
-        echo -e "${GREEN}✅ Backend started on port $BACKEND_PORT${NC}"
+        echo -e "${GREEN}✅ Backend started on port $BACKEND_PORT (nodemon)${NC}"
     else
         echo -e "${RED}❌ Backend failed to start${NC}"
+        echo "Check logs: cat logs/backend.log"
     fi
 }
 
 start_frontend() {
-    echo "Starting Frontend Dashboard..."
+    echo "Starting Frontend Dashboard (dev mode)..."
     if check_port $FRONTEND_PORT; then
         echo -e "${YELLOW}Frontend already running on port $FRONTEND_PORT${NC}"
         return
     fi
     
     cd $FRONTEND_DIR
-    npm start > ../../logs/frontend.log 2>&1 &
+    # Set API URL for dev mode
+    REACT_APP_API_URL=http://52.249.222.161:5000/api npm start > ../../logs/frontend.log 2>&1 &
     echo $! > ../../logs/frontend.pid
     cd - > /dev/null
-    sleep 3
+    sleep 5
     
     if check_port $FRONTEND_PORT; then
         echo -e "${GREEN}✅ Frontend started on port $FRONTEND_PORT${NC}"
     else
         echo -e "${RED}❌ Frontend failed to start${NC}"
+        echo "Check logs: cat logs/frontend.log"
     fi
 }
 

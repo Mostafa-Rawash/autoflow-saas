@@ -33,6 +33,7 @@ const adminMenuItems = [
   { path: '/admin', icon: BarChart3, label: 'لوحة المدير', available: true },
   { path: '/admin/users', icon: Users, label: 'المستخدمين', available: true },
   { path: '/admin/roles', icon: Lock, label: 'الأدوار', available: true },
+  { path: '/admin/system-logs', icon: BarChart3, label: 'سجل الأخطاء', available: true },
   { path: '/admin/articles', icon: FileText, label: 'المقالات', available: true },
   { path: '/admin/docs', icon: FileText, label: 'التوثيق', available: true },
   { path: '/admin/subscriptions', icon: Crown, label: 'الاشتراكات', available: true },

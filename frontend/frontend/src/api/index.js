@@ -108,4 +108,15 @@ export const whatsappAPI = {
   refreshQR: () => api.post('/whatsapp/refresh-qr')
 };
 
+// Logs API (admin only)
+export const logsAPI = {
+  getAll: (params) => api.get('/logs', { params }),
+  getOne: (id) => api.get(`/logs/${id}`),
+  getStats: (params) => api.get('/logs/stats', { params }),
+  resolve: (id) => api.put(`/logs/${id}/resolve`),
+  delete: (id) => api.delete(`/logs/${id}`),
+  clear: (params) => api.delete('/logs', { params }),
+  logFrontendError: (data) => api.post('/logs/frontend', data)
+};
+
 export default api;
