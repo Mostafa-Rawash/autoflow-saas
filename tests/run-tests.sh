@@ -21,7 +21,7 @@ TEST_TYPE=${1:-all}
 run_api_tests() {
     echo -e "\n${YELLOW}Running API Tests...${NC}\n"
     
-    cd frontend/backend
+    cd backend
     
     # Check if server is running
     if ! curl -s http://localhost:5000/health > /dev/null 2>&1; then
@@ -53,7 +53,7 @@ run_api_tests() {
 run_frontend_tests() {
     echo -e "\n${YELLOW}Running Frontend Tests...${NC}\n"
     
-    cd frontend/frontend
+    cd frontend
     
     # Run Jest tests
     npm test -- --passWithNoTests --watchAll=false 2>/dev/null || true
@@ -125,7 +125,7 @@ run_linting() {
     
     # Backend linting
     echo "Linting Backend..."
-    cd frontend/backend
+    cd backend
     if command -v eslint &> /dev/null; then
         eslint . --fix 2>/dev/null || true
     fi
@@ -133,7 +133,7 @@ run_linting() {
     
     # Frontend linting
     echo "Linting Frontend..."
-    cd frontend/frontend
+    cd frontend
     if command -v eslint &> /dev/null; then
         eslint src/ --fix 2>/dev/null || true
     fi

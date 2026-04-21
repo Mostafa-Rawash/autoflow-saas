@@ -8,7 +8,7 @@
     "test:api": "node tests/api.test.js",
     "test:advanced": "node tests/advanced.test.js",
     "test:csv": "node tests/advanced.test.js",
-    "test:frontend": "cd frontend/frontend && npm test",
+    "test:frontend": "cd frontend && npm test",
     "test:e2e": "npx cypress run --config-file tests/cypress.config.js",
     "start": "./scripts/process.sh start all",
     "stop": "./scripts/process.sh stop all",
@@ -16,12 +16,15 @@
     "status": "./scripts/process.sh status",
     "logs": "./scripts/process.sh logs all",
     "health": "./scripts/process.sh health",
+    "dev": "npm run dev:backend & npm run dev:frontend",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm start",
     "deploy:staging": "./scripts/deploy.sh staging",
     "deploy:production": "./scripts/deploy.sh production",
     "lint": "npx eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "npx prettier --write .",
     "build": "npm run build:frontend",
-    "build:frontend": "cd frontend/frontend && npm run build"
+    "build:frontend": "cd frontend && npm run build"
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",

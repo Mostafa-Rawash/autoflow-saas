@@ -20,8 +20,8 @@ BACKEND_PORT=5000
 FRONTEND_PORT=3000
 
 # Directories
-BACKEND_DIR="./frontend/backend"
-FRONTEND_DIR="./frontend/frontend"
+BACKEND_DIR="./backend"
+FRONTEND_DIR="./frontend"
 
 echo -e "${BLUE}AutoFlow Process Manager${NC}"
 echo "========================="
@@ -102,8 +102,8 @@ start_backend() {
     
     cd $BACKEND_DIR
     # Use nodemon for dev mode
-    NODE_ENV=development nodemon server.js > ../../logs/backend.log 2>&1 &
-    echo $! > ../../logs/backend.pid
+    NODE_ENV=development nodemon server.js > ../logs/backend.log 2>&1 &
+    echo $! > ../logs/backend.pid
     cd - > /dev/null
     sleep 2
     
@@ -124,8 +124,8 @@ start_frontend() {
     
     cd $FRONTEND_DIR
     # Set API URL for dev mode
-    REACT_APP_API_URL=http://52.249.222.161:5000/api npm start > ../../logs/frontend.log 2>&1 &
-    echo $! > ../../logs/frontend.pid
+    REACT_APP_API_URL=http://localhost:5000/api npm start > ../logs/frontend.log 2>&1 &
+    echo $! > ../logs/frontend.pid
     cd - > /dev/null
     sleep 5
     

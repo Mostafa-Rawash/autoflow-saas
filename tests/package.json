@@ -5,7 +5,7 @@
   "scripts": {
     "test": "node tests/api.test.js",
     "test:api": "node tests/api.test.js",
-    "test:frontend": "cd frontend/frontend && npm test",
+    "test:frontend": "cd frontend && npm test",
     "test:e2e": "cypress run",
     "test:health": "./tests/run-tests.sh health",
     "test:all": "./tests/run-tests.sh all",

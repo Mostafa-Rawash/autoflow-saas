@@ -42,8 +42,8 @@ if command -v mongodump &> /dev/null; then
 fi
 
 # Backup .env files
-if [ -f "frontend/backend/.env" ]; then
-    cp frontend/backend/.env "$BACKUP_DIR/env-backend-$TIMESTAMP"
+if [ -f "backend/.env" ]; then
+    cp backend/.env "$BACKUP_DIR/env-backend-$TIMESTAMP"
 fi
 
 # ========================================
@@ -53,12 +53,12 @@ fi
 echo ""
 echo "📥 Installing dependencies..."
 
-cd frontend/frontend
+cd frontend
 npm ci --production=false
 npm run build
 cd ../..
 
-cd frontend/backend
+cd backend
 npm ci --production
 cd ../..
 
@@ -76,8 +76,8 @@ echo "✅ Dependencies installed"
 echo ""
 echo "⚙️ Setting up environment..."
 
-if [ ! -f "frontend/backend/.env" ]; then
-    cat > frontend/backend/.env << EOF
+if [ ! -f "backend/.env" ]; then
+    cat > backend/.env << EOF
 NODE_ENV=$PM2_ENV
 PORT=5000
 MONGODB_URI=mongodb://localhost:27017/autoflow
@@ -99,7 +99,7 @@ module.exports = {
   apps: [
     {
       name: 'autoflow-backend',
-      cwd: './frontend/backend',
+      cwd: './backend',
       script: 'server.js',
       instances: 2,
       exec_mode: 'cluster',
@@ -138,7 +138,7 @@ echo "✅ PM2 configured"
 echo ""
 echo "🗄️ Running database migrations..."
 
-cd frontend/backend
+cd backend
 if [ -d "migrations" ]; then
     npx migrate-mongo up
 fi

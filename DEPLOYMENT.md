@@ -12,7 +12,7 @@
 
 ### Backend Environment Variables
 
-Create `frontend/backend/.env`:
+Create `backend/.env`:
 
 ```env
 NODE_ENV=production
@@ -45,7 +45,7 @@ SESSION_SAVE_PATH=/var/lib/autoflow/sessions
 
 ```bash
 # Backend
-cd frontend/backend
+cd backend
 npm install --production
 
 # Frontend
@@ -72,7 +72,7 @@ module.exports = {
   apps: [
     {
       name: 'autoflow-backend',
-      cwd: './frontend/backend',
+      cwd: './backend',
       script: 'server.js',
       instances: 2,
       exec_mode: 'cluster',
@@ -92,7 +92,7 @@ module.exports = {
     },
     {
       name: 'autoflow-frontend',
-      cwd: './frontend/frontend',
+      cwd: './frontend',
       script: 'server.js',
       instances: 1,
       env_production: {
