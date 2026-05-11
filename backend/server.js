@@ -40,6 +40,7 @@ const telegramRoutes = require('./routes/telegram');
 const adminRoutes = require('./routes/admin');
 const queueRoutes = require('./routes/queue');
 const autoReplyRoutes = require('./routes/autoReplies');
+const logRoutes = require('./routes/logs');
 const Role = require('./models/Role');
 
 const allowedOrigins = [
@@ -138,6 +139,26 @@ const startServer = async () => {
   app.use('/api/admin', adminRoutes);
   app.use('/api/queue', queueRoutes);
   app.use('/api/auto-replies', autoReplyRoutes);
+  app.use('/api/logs', logRoutes);
+  // Frontend error logging — regular auth, not admin-only
+  const { auth } = require('./middleware/auth');
+  const Log = require('./models/Log');
+  app.post('/api/logs/frontend', auth, async (req, res) => {
+    try {
+      const { level = 'error', message, source = 'frontend', error, metadata } = req.body;
+      const log = await Log.create({
+        level,
+        message: message || 'Frontend error',
+        source,
+        user: req.user?._id || null,
+        error: error ? { name: error.name, message: error.message, code: error.code, stack: error.stack } : undefined,
+        metadata
+      });
+      res.status(201).json({ success: true, log });
+    } catch (err) {
+      res.status(500).json({ success: false, error: 'Failed to log error' });
+    }
+  });
 
   // Health check
   app.get('/health', (req, res) => {
@@ -204,10 +225,19 @@ const startServer = async () => {
     });
   });
 
-  // Error handling
+  // Error handling — log 500s to Log collection
   app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).json({ 
+    const Log = require('./models/Log');
+    Log.create({
+      level: 'error',
+      message: err.message || 'Unhandled server error',
+      source: 'api',
+      user: req.user?._id || null,
+      error: { name: err.name, message: err.message, code: err.code, stack: err.stack },
+      request: { method: req.method, url: req.originalUrl, ip: req.ip }
+    }).catch(() => {});
+    res.status(500).json({
       error: 'Something went wrong!',
       message: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
@@ -217,6 +247,20 @@ const startServer = async () => {
   httpServer.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📡 Socket.io enabled`);
+
+    // Seed sample system logs if collection is empty
+    const Log = require('./models/Log');
+    Log.countDocuments().then(count => {
+      if (count === 0) {
+        const sampleLogs = [
+          { level: 'info', message: 'Server started successfully', source: 'system', timestamp: new Date() },
+          { level: 'info', message: 'MongoDB connection established', source: 'backend', timestamp: new Date(Date.now() - 60000) },
+          { level: 'info', message: 'Default roles seeded', source: 'system', timestamp: new Date(Date.now() - 30000) },
+          { level: 'warn', message: 'REDIS_URL not set — using in-memory cache', source: 'backend', timestamp: new Date(Date.now() - 120000) },
+        ];
+        Log.insertMany(sampleLogs).then(() => console.log('📋 Sample logs seeded')).catch(() => {});
+      }
+    }).catch(() => {});
 
     // Start message queue processor
     const { messageQueueService } = require('./services/messageQueue.service');

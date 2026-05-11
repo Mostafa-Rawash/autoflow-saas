@@ -226,7 +226,10 @@ router.post('/:id/messages', [
     });
     
     await message.save();
-    
+
+    // Get conversation for channel info
+    const conversation = await Conversation.findById(req.params.id);
+
     // Update conversation last message
     await Conversation.findByIdAndUpdate(req.params.id, {
       lastMessage: {
@@ -235,9 +238,43 @@ router.post('/:id/messages', [
         sender: 'agent'
       }
     });
-    
-    // TODO: Send to external channel (WhatsApp, Messenger, etc.)
-    
+
+    // Send to external channel
+    if (conversation) {
+      try {
+        if (conversation.channel === 'whatsapp') {
+          const whatsappService = require('../services/whatsapp.service');
+          if (conversation.contact?.externalId) {
+            console.log(`📤 Sending WhatsApp message from user ${req.user.id} to ${conversation.contact.externalId}`);
+            await whatsappService.sendMessage(req.user.id, conversation.contact.externalId, content, { media, buttons });
+            console.log(`✅ WhatsApp message sent successfully`);
+          } else {
+            console.warn(`⚠️ WhatsApp conversation ${conversation._id} has no contact.externalId`);
+          }
+        } else if (conversation.channel === 'telegram') {
+          const telegramService = require('../services/telegram.service');
+          if (conversation.contact?.externalId) {
+            console.log(`📤 Sending Telegram message from user ${req.user.id} to ${conversation.contact.externalId}`);
+            await telegramService.sendMessage(req.user.id, conversation.contact.externalId, content);
+            console.log(`✅ Telegram message sent successfully`);
+          } else {
+            console.warn(`⚠️ Telegram conversation ${conversation._id} has no contact.externalId`);
+          }
+        }
+      } catch (channelErr) {
+        console.error('❌ Error sending to external channel:', channelErr.message);
+        console.error('   Channel:', conversation.channel, '| externalId:', conversation.contact?.externalId);
+      }
+    }
+
+    // Emit via socket.io
+    if (global.io) {
+      global.io.to(`user-${req.user.id}`).emit('new-message', {
+        conversationId: req.params.id,
+        message
+      });
+    }
+
     res.status(201).json({ success: true, message });
   } catch (err) {
     console.error(err);

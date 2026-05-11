@@ -10,7 +10,7 @@ import { useTheme } from '../../context/ThemeContext';
 import toast from 'react-hot-toast';
 
 const AdminLogs = () => {
-  const { theme } = useTheme();
+  const theme = useTheme();
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);

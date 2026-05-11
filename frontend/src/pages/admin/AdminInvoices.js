@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../api';
 import { useTheme } from '../../context/ThemeContext';
 
 const AdminInvoices = () => {
-  const { theme } = useTheme();
+  const theme = useTheme();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({ status: '', method: '', search: '' });
+  const [showModal, setShowModal] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
 
   useEffect(() => {
     fetchInvoices();
@@ -50,10 +53,10 @@ const AdminInvoices = () => {
   const overdueAmount = invoices.filter(i => i.status === 'overdue').reduce((sum, i) => sum + i.amount, 0);
 
   const statusColors = {
-    paid: 'bg-green-100 text-green-700',
-    pending: 'bg-yellow-100 text-yellow-700',
-    overdue: 'bg-red-100 text-red-700',
-    cancelled: 'bg-gray-100 text-gray-600'
+    paid: theme === 'light' ? 'bg-green-100 text-green-700' : 'bg-green-500/20 text-green-400',
+    pending: theme === 'light' ? 'bg-yellow-100 text-yellow-700' : 'bg-yellow-500/20 text-yellow-400',
+    overdue: theme === 'light' ? 'bg-red-100 text-red-700' : 'bg-red-500/20 text-red-400',
+    cancelled: theme === 'light' ? 'bg-gray-100 text-gray-600' : 'bg-gray-500/20 text-gray-400'
   };
 
   const statusNames = {
@@ -86,7 +89,7 @@ const AdminInvoices = () => {
             </svg>
             تصدير
           </button>
-          <button className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2">
+          <button onClick={() => setShowModal(true)} className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2" aria-label="فاتورة جديدة">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
@@ -188,18 +191,13 @@ const AdminInvoices = () => {
                 <td className={`px-4 py-3 text-sm ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>{invoice.date}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-center gap-2">
-                    <button className={`p-2 rounded ${theme === 'light' ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-slate-700 text-gray-400 hover:text-white'}`}>
+                    <button onClick={() => setSelectedInvoice(invoice)} className={`p-2 rounded ${theme === 'light' ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-slate-700 text-gray-400 hover:text-white'}`} aria-label="عرض الفاتورة">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                       </svg>
                     </button>
-                    <button className={`p-2 rounded ${theme === 'light' ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-slate-700 text-gray-400 hover:text-white'}`}>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </button>
-                    <button className={`p-2 rounded ${theme === 'light' ? 'hover:bg-sky-50 text-slate-500' : 'hover:bg-primary-500/20 text-gray-400 hover:text-primary-400'}`}>
+                    <button onClick={() => window.print()} className={`p-2 rounded ${theme === 'light' ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-slate-700 text-gray-400 hover:text-white'}`} aria-label="طباعة الفاتورة">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                       </svg>
@@ -211,6 +209,34 @@ const AdminInvoices = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Invoice Detail Modal */}
+      {selectedInvoice && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" onClick={() => setSelectedInvoice(null)}>
+          <div className={`rounded-2xl w-full max-w-md p-6 ${theme === 'light' ? 'bg-white' : 'bg-dark-800'}`} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className={`text-lg font-bold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>تفاصيل الفاتورة</h2>
+              <button onClick={() => setSelectedInvoice(null)} className={`p-2 rounded-lg ${theme === 'light' ? 'hover:bg-slate-100' : 'hover:bg-dark-700'}`} aria-label="إغلاق">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div className="flex justify-between"><span className={theme === 'light' ? 'text-slate-500' : 'text-gray-400'}>رقم الفاتورة</span><span className="font-mono font-semibold">{selectedInvoice.id}</span></div>
+              <div className="flex justify-between"><span className={theme === 'light' ? 'text-slate-500' : 'text-gray-400'}>العميل</span><span className="font-semibold">{selectedInvoice.user}</span></div>
+              <div className="flex justify-between"><span className={theme === 'light' ? 'text-slate-500' : 'text-gray-400'}>البريد</span><span className={theme === 'light' ? 'text-slate-700' : 'text-slate-300'}>{selectedInvoice.email}</span></div>
+              <div className="flex justify-between"><span className={theme === 'light' ? 'text-slate-500' : 'text-gray-400'}>الخطة</span><span>{selectedInvoice.plan}</span></div>
+              <div className="flex justify-between"><span className={theme === 'light' ? 'text-slate-500' : 'text-gray-400'}>المبلغ</span><span className="font-bold">{selectedInvoice.amount.toLocaleString()} ج.م</span></div>
+              <div className="flex justify-between"><span className={theme === 'light' ? 'text-slate-500' : 'text-gray-400'}>الحالة</span><span className={`px-2 py-0.5 rounded-full text-xs ${statusColors[selectedInvoice.status]}`}>{statusNames[selectedInvoice.status]}</span></div>
+              <div className="flex justify-between"><span className={theme === 'light' ? 'text-slate-500' : 'text-gray-400'}>طريقة الدفع</span><span>{methodNames[selectedInvoice.method]}</span></div>
+              <div className="flex justify-between"><span className={theme === 'light' ? 'text-slate-500' : 'text-gray-400'}>التاريخ</span><span>{selectedInvoice.date}</span></div>
+            </div>
+            <div className={`mt-6 pt-4 border-t ${theme === 'light' ? 'border-slate-200' : 'border-dark-600'} flex gap-3`}>
+              <button onClick={() => window.print()} className="btn-primary px-4 py-2 rounded-lg flex-1">طباعة</button>
+              <button onClick={() => setSelectedInvoice(null)} className={`px-4 py-2 rounded-lg ${theme === 'light' ? 'bg-slate-100 hover:bg-slate-200' : 'bg-dark-700 hover:bg-dark-600'}`}>إغلاق</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../api';
 import { useTheme } from '../../context/ThemeContext';
 
 const AdminSubscriptions = () => {
@@ -119,7 +120,9 @@ const AdminSubscriptions = () => {
     }
   };
 
-  const data = getMockData();
+  const plans = subscriptions?.plans || [];
+  const revenue = subscriptions?.revenue || { total: 0, thisMonth: 0, lastMonth: 0 };
+  const activeSubscriptions = subscriptions?.activeSubscriptions || [];
 
   const inputClass = `w-full ${theme === 'light' ? 'bg-white border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg px-4 py-2`;
   const selectClass = `${theme === 'light' ? 'bg-white border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg px-3 py-2`;
@@ -147,16 +150,16 @@ const AdminSubscriptions = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="glass rounded-xl p-4">
           <p className="text-gray-400 text-sm">إجمالي الإيرادات</p>
-          <p className="text-2xl font-bold">{data.revenue.total.toLocaleString()} ج.م</p>
+          <p className="text-2xl font-bold">{revenue.total.toLocaleString()} ج.م</p>
         </div>
         <div className="glass rounded-xl p-4">
           <p className="text-gray-400 text-sm">هذا الشهر</p>
-          <p className="text-2xl font-bold text-green-400">{data.revenue.thisMonth.toLocaleString()} ج.م</p>
+          <p className="text-2xl font-bold text-green-400">{revenue.thisMonth.toLocaleString()} ج.م</p>
         </div>
         <div className="glass rounded-xl p-4">
           <p className="text-gray-400 text-sm">المشتركين النشطين</p>
           <p className="text-2xl font-bold text-primary-400">
-            {data.activeSubscriptions.filter(s => s.status === 'active').length}
+            {activeSubscriptions.filter(s => s.status === 'active').length}
           </p>
         </div>
         <div className="glass rounded-xl p-4">
@@ -169,7 +172,7 @@ const AdminSubscriptions = () => {
       <div className="glass rounded-xl p-6">
         <h2 className="text-xl font-bold mb-4">خطط الاشتراك</h2>
         <div className="grid md:grid-cols-3 gap-6">
-          {data.plans.map(plan => (
+          {plans.map(plan => (
             <div
               key={plan.id}
               className={`relative ${theme === 'light' ? 'bg-white border border-slate-200' : 'bg-dark-800'} rounded-xl p-6 ${plan.isPopular ? 'ring-2 ring-primary-500' : ''}`}
@@ -259,7 +262,7 @@ const AdminSubscriptions = () => {
             </tr>
           </thead>
           <tbody className={`divide-y ${theme === 'light' ? 'divide-slate-200' : 'divide-dark-700'}`}>
-            {data.activeSubscriptions.map(sub => (
+            {activeSubscriptions.map(sub => (
               <tr key={sub.id} className={theme === 'light' ? 'hover:bg-slate-50' : 'hover:bg-dark-800/50'}>
                 <td className="px-4 py-3">
                   <p className="font-semibold">{sub.user}</p>
@@ -267,7 +270,7 @@ const AdminSubscriptions = () => {
                 </td>
                 <td className="px-4 py-3">
                   <span className="px-2 py-1 rounded bg-primary-500/20 text-primary-400 text-sm">
-                    {data.plans.find(p => p.key === sub.plan)?.name}
+                    {plans.find(p => p.key === sub.plan)?.name}
                   </span>
                 </td>
                 <td className="px-4 py-3">

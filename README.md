@@ -8,7 +8,7 @@ Arabic-first, multi-channel communication platform for MENA businesses. Unifies 
 - **Team Management** — Invite members, manage roles and permissions
 - **Subscription System** — 4 plans (Free → Premium) with clear limits
 - **Admin Dashboard** — Manage users, subscriptions, and activity logs
-- **Role-Based Access** — 5 roles with 27 granular permissions
+- **Role-Based Access** — 5 roles with 30 granular permissions
 - **WhatsApp Integration** — Connect via QR code, multi-client support
 - **Telegram Integration** — Bot-based messaging with webhook support
 - **Real-time Messaging** — Socket.io for instant message delivery
@@ -113,6 +113,8 @@ autoflow-saas/
 ### Admin (Super Admin Only)
 - `GET /api/admin/dashboard` — Admin stats
 - `GET /api/admin/users` — List all users
+- `GET /api/admin/roles` — List roles with user counts
+- `PUT /api/admin/roles/:name` — Update role permissions
 
 ## Environment Variables
 

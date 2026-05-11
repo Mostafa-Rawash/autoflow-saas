@@ -7,6 +7,7 @@ const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const Integration = require('../models/Integration');
 const whatsappService = require('../services/whatsapp.service');
+const Role = require('../models/Role');
 const { adminAuth, auditLog } = require('../middleware/admin');
 
 // Validation helper
@@ -112,6 +113,78 @@ router.get('/dashboard', auditLog('VIEW_DASHBOARD'), async (req, res) => {
 });
 
 // ============================================
+// ROLES & PERMISSIONS
+// ============================================
+
+// @route   GET /api/admin/roles
+// @desc    Get all roles with user counts
+// @access  Admin
+router.get('/roles', async (req, res) => {
+  try {
+    const roles = await Role.find().sort({ level: -1 }).lean();
+
+    const userCounts = await User.aggregate([
+      { $group: { _id: '$role', count: { $sum: 1 } } }
+    ]);
+    const countMap = {};
+    userCounts.forEach(u => { countMap[u._id] = u.count; });
+
+    const rolesWithCounts = roles.map(role => ({
+      ...role,
+      usersCount: countMap[role.name] || 0
+    }));
+
+    res.json({ success: true, roles: rolesWithCounts });
+  } catch (err) {
+    console.error('Admin roles list error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+      code: 'SERVER_ERROR'
+    });
+  }
+});
+
+// @route   PUT /api/admin/roles/:name
+// @desc    Update a role's permissions
+// @access  Admin
+router.put('/roles/:name', [
+  param('name').isIn(['owner', 'admin', 'manager', 'agent', 'viewer']),
+  body('permissions').optional().isObject(),
+  body('description').optional().isString().trim()
+], validate, auditLog('UPDATE_ROLE'), async (req, res) => {
+  try {
+    const { permissions, description } = req.body;
+    const update = {};
+    if (permissions) update.permissions = permissions;
+    if (description !== undefined) update.description = description;
+
+    const role = await Role.findOneAndUpdate(
+      { name: req.params.name },
+      update,
+      { new: true }
+    );
+
+    if (!role) {
+      return res.status(404).json({
+        success: false,
+        error: 'Role not found',
+        code: 'ROLE_NOT_FOUND'
+      });
+    }
+
+    res.json({ success: true, role });
+  } catch (err) {
+    console.error('Admin update role error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+      code: 'SERVER_ERROR'
+    });
+  }
+});
+
+// ============================================
 // USER MANAGEMENT
 // ============================================
 
@@ -201,6 +274,45 @@ router.get('/users/:id', [
   } catch (err) {
     console.error('Admin user detail error:', err);
     res.status(500).json({ 
+      success: false,
+      error: 'Server error',
+      code: 'SERVER_ERROR'
+    });
+  }
+});
+
+// @route   PUT /api/admin/users/:id/role
+// @desc    Update user's role
+// @access  Admin
+router.put('/users/:id/role', [
+  param('id').isMongoId(),
+  body('role').isIn(['owner', 'admin', 'manager', 'agent', 'viewer'])
+], validate, auditLog('UPDATE_USER_ROLE'), async (req, res) => {
+  try {
+    const { role } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { role },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found',
+        code: 'USER_NOT_FOUND'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `User role updated to ${role}`,
+      user
+    });
+  } catch (err) {
+    console.error('Admin update role error:', err);
+    res.status(500).json({
       success: false,
       error: 'Server error',
       code: 'SERVER_ERROR'

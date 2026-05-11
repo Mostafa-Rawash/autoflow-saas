@@ -40,22 +40,27 @@ class WhatsAppService {
       };
     }
 
-    // Check if client already exists
+    // Check if client already exists and is active
     if (this.clients.has(userId)) {
       const status = this.userStatus.get(userId);
       const qrData = this.userQRs.get(userId);
-      if (qrData) {
-        return {
-          status: 'qr_ready',
-          message: 'QR code already available',
-          qr: qrData.qr
-        };
+      if (status === 'connected') {
+        return { status: 'connected', message: 'WhatsApp is already connected' };
       }
-      return {
-        status: status || 'already_exists',
-        message: 'Client already initialized'
-      };
+      if (qrData) {
+        return { status: 'qr_ready', message: 'QR code already available', qr: qrData.qr };
+      }
+      // Client exists but is stuck — destroy it first
+      try { await this.clients.get(userId).destroy(); } catch (e) { /* ignore */ }
+      this.clients.delete(userId);
+      this.userStatus.delete(userId);
+      this.userQRs.delete(userId);
     }
+
+    // Clean up old session data to avoid corrupted session issues
+    const fs = require('fs');
+    const sessionPath = `./sessions/session-${userId}`;
+    try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch (e) { /* ignore */ }
 
     // Set initializing status
     this.userStatus.set(userId, 'initializing');
@@ -85,16 +90,16 @@ class WhatsAppService {
     // QR Code event - Store per user and emit via socket
     client.on('qr', (qr) => {
       console.log(`📱 QR Code generated for user ${userId}`);
-      
+
       // Store QR for this specific user
       this.userQRs.set(userId, {
         qr: qr,
         timestamp: new Date()
       });
-      
+
       // Update status
       this.userStatus.set(userId, 'qr_ready');
-      
+
       // Emit to specific user via socket.io
       if (global.io) {
         global.io.to(`user-${userId}`).emit('whatsapp-qr', {
@@ -103,7 +108,7 @@ class WhatsAppService {
           timestamp: new Date()
         });
       }
-      
+
       // Also log to console for debugging
       qrcode.generate(qr, { small: true });
     });
@@ -111,14 +116,14 @@ class WhatsAppService {
     // Ready event
     client.on('ready', () => {
       console.log(`✅ WhatsApp client ready for user ${userId}`);
-      
+
       // Update status
       this.userStatus.set(userId, 'connected');
       this.userQRs.delete(userId); // Clear QR
-      
+
       // Update user's channel status in DB
       this.updateChannelStatus(userId, 'connected');
-      
+
       // Emit connected event
       if (global.io) {
         global.io.to(`user-${userId}`).emit('whatsapp-connected', {
@@ -147,13 +152,13 @@ class WhatsAppService {
     // Disconnected event
     client.on('disconnected', (reason) => {
       console.log(`❌ WhatsApp disconnected for user ${userId}: ${reason}`);
-      
+
       this.userStatus.set(userId, 'disconnected');
       this.clients.delete(userId);
       this.userQRs.delete(userId);
-      
+
       this.updateChannelStatus(userId, 'disconnected');
-      
+
       if (global.io) {
         global.io.to(`user-${userId}`).emit('whatsapp-disconnected', {
           userId: userId,
@@ -165,13 +170,16 @@ class WhatsAppService {
     // Auth failure
     client.on('auth_failure', (error) => {
       console.error(`🔐 Auth failure for user ${userId}:`, error);
-      
+
       this.userStatus.set(userId, 'error');
       this.clients.delete(userId);
       this.userQRs.delete(userId);
-      
+
+      // Clean up corrupted session
+      try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch (e) { /* ignore */ }
+
       this.updateChannelStatus(userId, 'error');
-      
+
       if (global.io) {
         global.io.to(`user-${userId}`).emit('whatsapp-error', {
           userId: userId,
@@ -186,24 +194,28 @@ class WhatsAppService {
       this.userStatus.set(userId, 'loading');
     });
 
-    // Initialize
-    try {
-      await client.initialize();
-      this.clients.set(userId, client);
+    // Track client immediately so getStatus knows about it
+    this.clients.set(userId, client);
 
-      return {
-        status: 'initializing',
-        message: 'QR code will be generated shortly. Check the QR endpoint.'
-      };
-    } catch (error) {
-      console.error(`Failed to initialize client for user ${userId}:`, error);
-      this.userStatus.set(userId, 'error');
-      
-      return {
-        status: 'error',
-        message: error.message || 'Failed to initialize WhatsApp client'
-      };
-    }
+    // Start initialization in the background — do NOT await
+    // QR event fires asynchronously and stores the QR code
+    client.initialize()
+      .then(() => {
+        console.log(`✅ WhatsApp client.initialize() completed for user ${userId}`);
+      })
+      .catch((error) => {
+        console.error(`❌ WhatsApp initialize failed for user ${userId}:`, error.message);
+        this.userStatus.set(userId, 'error');
+        this.clients.delete(userId);
+        this.userQRs.delete(userId);
+        // Clean up corrupted session
+        try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch (e) { /* ignore */ }
+      });
+
+    return {
+      status: 'initializing',
+      message: 'QR code will be generated shortly. Check the QR endpoint.'
+    };
   }
 
   // Get QR Code for specific user
@@ -231,7 +243,7 @@ class WhatsAppService {
   // Send message
   async sendMessage(userId, to, content, options = {}) {
     const client = this.clients.get(userId);
-    
+
     if (!client) {
       throw new Error('WhatsApp client not initialized');
     }
@@ -240,8 +252,14 @@ class WhatsAppService {
       throw new Error('WhatsApp client is not connected');
     }
 
-    // Format phone number (add @c.us suffix)
-    const chatId = to.includes('@c.us') ? to : `${to.replace(/[^0-9]/g, '')}@c.us`;
+    // Ensure chatId uses @c.us format — @lid is not routable for sending
+    let chatId = to;
+    if (chatId.includes('@lid')) {
+      chatId = chatId.replace('@lid', '@c.us');
+    }
+    if (!chatId.includes('@')) {
+      chatId = `${chatId}@c.us`;
+    }
 
     try {
       let message;
@@ -404,7 +422,10 @@ class WhatsAppService {
   // Disconnect client
   async disconnect(userId) {
     const client = this.clients.get(userId);
-    
+
+    // Mark as disconnecting to prevent disconnected event from interfering
+    this.userStatus.set(userId, 'disconnecting');
+
     if (client) {
       try {
         await client.destroy();
@@ -413,10 +434,15 @@ class WhatsAppService {
       }
       this.clients.delete(userId);
     }
-    
-    this.userStatus.set(userId, 'disconnected');
+
+    this.userStatus.delete(userId);
     this.userQRs.delete(userId);
-    
+
+    // Clean up session data so next connection starts fresh
+    const fs = require('fs');
+    const sessionPath = `./sessions/session-${userId}`;
+    try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch (e) { /* ignore */ }
+
     await this.updateChannelStatus(userId, 'disconnected');
 
     return {
@@ -428,28 +454,60 @@ class WhatsAppService {
   // Handle incoming message
   async handleIncomingMessage(userId, message) {
     try {
-      // Get or create conversation
+      // Resolve the proper contact ID — prefer @c.us format over @lid
+      const contact = await message.getContact();
+      const contactId = contact.id?._serialized || message.from;
+      // Use @c.us format for sending messages back — @lid format is not routable
+      const sendableId = contactId.replace('@lid', '@c.us');
+      const contactNumber = contact.number || message.from.replace(/@c\.us|@lid/g, '');
+      const contactName = contact.name || contact.pushname || contactNumber;
+
+      // Skip group chats and newsletters — not individual conversations
+      if (message.from.endsWith('@g.us') || message.from.endsWith('@newsletter')) {
+        console.log(`⏭️ Skipping group/newsletter message from ${message.from}`);
+        return;
+      }
+
+      // Get or create conversation — match by multiple fields for robustness
       let conversation = await Conversation.findOne({
         user: userId,
         channel: 'whatsapp',
-        'contact.externalId': message.from
+        $or: [
+          { 'contact.externalId': sendableId },
+          { 'contact.externalId': contactId },
+          { 'contact.externalId': message.from },
+          { 'contact.phone': contactNumber }
+        ]
       });
 
       if (!conversation) {
-        // Get contact info
-        const contact = await message.getContact();
-        
         conversation = new Conversation({
           user: userId,
           channel: 'whatsapp',
           contact: {
-            name: contact.name || contact.pushname || message.from,
-            phone: message.from.replace('@c.us', ''),
-            externalId: message.from
+            name: contactName,
+            phone: contactNumber,
+            externalId: sendableId
           },
           status: 'active'
         });
         await conversation.save();
+      } else {
+        // Update contact info with latest data and fix @lid format
+        let updated = false;
+        if (conversation.contact.externalId !== sendableId) {
+          conversation.contact.externalId = sendableId;
+          updated = true;
+        }
+        if (contactName && conversation.contact.name !== contactName && !conversation.contact.name?.includes(contactName)) {
+          conversation.contact.name = contactName;
+          updated = true;
+        }
+        if (contactNumber && contactNumber !== conversation.contact.phone && !conversation.contact.phone?.includes('@')) {
+          conversation.contact.phone = contactNumber;
+          updated = true;
+        }
+        if (updated) await conversation.save();
       }
 
       // Save message

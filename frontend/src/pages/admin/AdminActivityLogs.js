@@ -1,10 +1,23 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../api';
 import { useTheme } from '../../context/ThemeContext';
 
+const logColorClasses = {
+  blue: 'bg-blue-500/20 text-blue-400',
+  purple: 'bg-purple-500/20 text-purple-400',
+  green: 'bg-green-500/20 text-green-400',
+  yellow: 'bg-yellow-500/20 text-yellow-400',
+  primary: 'bg-primary-500/20 text-primary-400',
+  red: 'bg-red-500/20 text-red-400',
+  gray: 'bg-gray-500/20 text-gray-400'
+};
+
 const AdminActivityLogs = () => {
-  const { theme } = useTheme();
+  const theme = useTheme();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [filter, setFilter] = useState({ type: '', user: '', date: '' });
 
   const logTypes = [
@@ -18,13 +31,21 @@ const AdminActivityLogs = () => {
 
   useEffect(() => {
     fetchLogs();
-  }, [filter]);
+  }, [page]);
 
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/admin/logs');
-      setLogs(res.data.logs || getMockLogs());
+      const params = { page, limit: 20 };
+      if (filter.type) params.type = filter.type;
+      if (filter.user) params.search = filter.user;
+      const res = await api.get('/admin/logs', { params });
+      if (res.data?.success) {
+        setLogs(res.data.logs || getMockLogs());
+        setTotalPages(res.data.pagination?.pages || 1);
+      } else {
+        setLogs(getMockLogs());
+      }
     } catch (err) {
       console.error('Error fetching logs:', err);
       setLogs(getMockLogs());
@@ -47,6 +68,7 @@ const AdminActivityLogs = () => {
   const filteredLogs = logs.filter(log => {
     if (filter.type && log.type !== filter.type) return false;
     if (filter.user && !log.user.toLowerCase().includes(filter.user.toLowerCase())) return false;
+    if (filter.date && log.date && !log.date.startsWith(filter.date)) return false;
     return true;
   });
 
@@ -60,7 +82,7 @@ const AdminActivityLogs = () => {
           <h1 className="text-2xl font-bold">سجل النشاط</h1>
           <p className={`text-sm mt-1 ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>تتبع كل العمليات في النظام</p>
         </div>
-        <button className="btn-secondary px-4 py-2 rounded-lg flex items-center gap-2">
+        <button className="btn-secondary px-4 py-2 rounded-lg flex items-center gap-2" aria-label="تصدير السجلات">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
@@ -71,7 +93,7 @@ const AdminActivityLogs = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         {logTypes.map(type => (
-          <div key={type.key} className="glass rounded-xl p-4 text-center">
+          <div key={type.key} className={`glass rounded-xl p-4 text-center`}>
             <span className="text-2xl">{type.icon}</span>
             <p className="text-2xl font-bold mt-2">
               {logs.filter(l => l.type === type.key).length}
@@ -121,12 +143,12 @@ const AdminActivityLogs = () => {
         <table className="w-full">
           <thead className={theme === 'light' ? 'bg-slate-50' : 'bg-slate-800'}>
             <tr>
-              <th className="px-4 py-3 text-right text-sm font-semibold">النوع</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold">المستخدم</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold">الإجراء</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold">التفاصيل</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold">IP</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold">التاريخ</th>
+              <th className={`px-4 py-3 text-right text-sm font-semibold ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>النوع</th>
+              <th className={`px-4 py-3 text-right text-sm font-semibold ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>المستخدم</th>
+              <th className={`px-4 py-3 text-right text-sm font-semibold ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>الإجراء</th>
+              <th className={`px-4 py-3 text-right text-sm font-semibold ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>التفاصيل</th>
+              <th className={`px-4 py-3 text-right text-sm font-semibold ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>IP</th>
+              <th className={`px-4 py-3 text-right text-sm font-semibold ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>التاريخ</th>
             </tr>
           </thead>
           <tbody className={`divide-y ${theme === 'light' ? 'divide-slate-200' : 'divide-slate-700'}`}>
@@ -135,13 +157,13 @@ const AdminActivityLogs = () => {
               return (
                 <tr key={log.id} className={theme === 'light' ? 'hover:bg-slate-50' : 'hover:bg-slate-800/50'}>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-${typeInfo.color}-500/20 text-${typeInfo.color}-400`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs ${logColorClasses[typeInfo.color] || logColorClasses.gray}`}>
                       <span>{typeInfo.icon}</span>
                       {typeInfo.name}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-semibold">{log.user}</td>
-                  <td className="px-4 py-3">{log.action}</td>
+                  <td className={`px-4 py-3 font-semibold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>{log.user}</td>
+                  <td className={`px-4 py-3 ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>{log.action}</td>
                   <td className={`px-4 py-3 text-sm ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>{log.details}</td>
                   <td className={`px-4 py-3 text-sm font-mono ${theme === 'light' ? 'text-slate-400' : 'text-gray-500'}`}>{log.ip}</td>
                   <td className={`px-4 py-3 text-sm ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>{log.date}</td>
@@ -155,10 +177,21 @@ const AdminActivityLogs = () => {
       {/* Pagination */}
       <div className="flex justify-center">
         <div className="flex gap-2">
-          <button className={`px-3 py-1 rounded ${theme === 'light' ? 'bg-slate-100 hover:bg-slate-200' : 'bg-slate-800 hover:bg-slate-700'}`}>السابق</button>
-          <button className="px-3 py-1 rounded btn-primary">1</button>
-          <button className={`px-3 py-1 rounded ${theme === 'light' ? 'bg-slate-100 hover:bg-slate-200' : 'bg-slate-800 hover:bg-slate-700'}`}>2</button>
-          <button className={`px-3 py-1 rounded ${theme === 'light' ? 'bg-slate-100 hover:bg-slate-200' : 'bg-slate-800 hover:bg-slate-700'}`}>التالي</button>
+          <button
+            onClick={() => setPage(Math.max(1, page - 1))}
+            disabled={page === 1}
+            className={`px-3 py-1 rounded ${theme === 'light' ? 'bg-slate-100 hover:bg-slate-200' : 'bg-slate-800 hover:bg-slate-700'} ${page === 1 ? 'opacity-50' : ''}`}
+          >
+            السابق
+          </button>
+          <span className={`px-3 py-1 rounded btn-primary`}>{page}</span>
+          <button
+            onClick={() => setPage(Math.min(totalPages, page + 1))}
+            disabled={page >= totalPages}
+            className={`px-3 py-1 rounded ${theme === 'light' ? 'bg-slate-100 hover:bg-slate-200' : 'bg-slate-800 hover:bg-slate-700'} ${page >= totalPages ? 'opacity-50' : ''}`}
+          >
+            التالي
+          </button>
         </div>
       </div>
     </div>

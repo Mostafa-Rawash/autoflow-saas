@@ -8,7 +8,7 @@ html {
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased selection:bg-sky-200 selection:text-sky-900;
+  @apply bg-slate-50 text-slate-900 antialiased selection:bg-teal-200 selection:text-teal-900;
 }
 
 [data-theme="dark"] body,
@@ -31,12 +31,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #0ea5e9, #2563eb);
+  background: linear-gradient(180deg, #14b8a6, #0d9488);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #0284c7, #1d4ed8);
+  background: linear-gradient(180deg, #0d9488, #0f766e);
 }
 
 /* Glass morphism */
@@ -54,20 +54,20 @@ body {
 
 /* Gradient text */
 .gradient-text {
-  @apply bg-gradient-to-r from-sky-600 to-cyan-500 bg-clip-text text-transparent;
+  @apply bg-gradient-to-r from-teal-600 to-emerald-400 bg-clip-text text-transparent;
 }
 
 /* Buttons */
 .btn-primary {
-  @apply inline-flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 font-semibold text-white transition-all duration-200 hover:bg-sky-700 hover:shadow-md hover:shadow-sky-600/20 active:scale-[0.99];
+  @apply inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 font-semibold text-white transition-all duration-200 hover:bg-teal-700 hover:shadow-md hover:shadow-teal-600/20 active:scale-[0.99];
 }
 
 .btn-secondary {
-  @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-700 transition-all duration-200 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.99];
+  @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-700 transition-all duration-200 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700 active:scale-[0.99];
 }
 
 [data-theme="dark"] .btn-secondary {
-  @apply bg-slate-800 border-slate-600 text-slate-200 hover:bg-slate-700 hover:border-sky-500;
+  @apply bg-slate-800 border-slate-600 text-slate-200 hover:bg-slate-700 hover:border-teal-500;
 }
 
 /* Cards - theme aware */
@@ -84,12 +84,12 @@ body {
 }
 
 .card:hover {
-  border-color: #7dd3fc;
+  border-color: #5eead4;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 }
 
 [data-theme="dark"] .card:hover {
-  border-color: #38bdf8;
+  border-color: #2dd4bf;
 }
 
 .card-hover {
@@ -120,7 +120,94 @@ body {
 }
 
 .status-resolved {
-  @apply bg-sky-50 text-sky-700 border-sky-200;
+  @apply bg-teal-50 text-teal-700 border-teal-200;
+}
+
+/* Glassmorphism auth pages */
+.auth-bg {
+  background: #ffffff;
+}
+
+[data-theme="dark"] .auth-bg {
+  background: #020617;
+}
+
+.orb {
+  display: none;
+}
+
+.orb-1 {
+  display: none;
+}
+
+.orb-2 {
+  display: none;
+}
+
+[data-theme="dark"] .orb {
+  display: none;
+}
+
+.orb-1.dark-orb {
+  display: none;
+}
+
+.orb-2.dark-orb {
+  display: none;
+}
+
+.input-glass {
+  @apply w-full border rounded-xl py-3 px-4 outline-none transition-all duration-200 bg-white border-slate-200 text-slate-900;
+}
+
+.input-glass:focus {
+  @apply border-teal-400 ring-2 ring-teal-400/20;
+}
+
+.input-glass::placeholder {
+  @apply text-slate-400;
+}
+
+[data-theme="dark"] .input-glass {
+  @apply bg-slate-800 border-slate-700 text-slate-100;
+}
+
+[data-theme="dark"] .input-glass:focus {
+  @apply border-teal-500 ring-2 ring-teal-500/30;
+}
+
+[data-theme="dark"] .input-glass::placeholder {
+  @apply text-slate-500;
+}
+
+.auth-card {
+  @apply rounded-2xl p-8 bg-white border border-slate-200;
+}
+
+[data-theme="dark"] .auth-card {
+  @apply bg-slate-900 border-slate-800;
+}
+
+.btn-auth {
+  @apply w-full py-3.5 rounded-xl font-semibold text-white transition-all duration-200;
+  background: linear-gradient(135deg, #0d9488, #059669);
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+}
+
+.btn-auth:hover {
+  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.45);
+  transform: translateY(-1px);
+}
+
+.btn-auth:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);
+}
+
+.btn-auth:disabled {
+  @apply opacity-60 cursor-not-allowed;
+  transform: none;
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.2);
 }
 
 /* Animations */
@@ -164,6 +251,7 @@ h1, h2, h3, h4, h5, h6 {
   @apply text-slate-400;
 }
 
+/* Sidebar navigation links */
 .sidebar-link {
   @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900;
 }
@@ -173,9 +261,70 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sidebar-link-active {
-  @apply bg-sky-50 text-sky-700 border border-sky-200;
+  @apply bg-teal-50 text-teal-700 border border-teal-200;
 }
 
 [data-theme="dark"] .sidebar-link-active {
-  @apply bg-sky-500/20 text-sky-400 border-sky-500/30;
+  @apply bg-teal-500/20 text-teal-400 border-teal-500/30;
+}
+
+/* Glass sidebar */
+.sidebar-glass {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-left: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+[data-theme="dark"] .sidebar-glass {
+  background: rgba(15, 23, 42, 0.85);
+  border-left: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+.sidebar-nav-item {
+  @apply flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium;
+}
+
+.sidebar-nav-item:not(.sidebar-nav-active):hover {
+  background: rgba(14, 165, 233, 0.08);
+}
+
+[data-theme="dark"] .sidebar-nav-item:not(.sidebar-nav-active):hover {
+  background: rgba(14, 165, 233, 0.12);
+}
+
+.sidebar-nav-active {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(59, 130, 246, 0.12));
+  box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.15);
+}
+
+[data-theme="dark"] .sidebar-nav-active {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.18), rgba(59, 130, 246, 0.18));
+  box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.25);
+}
+
+.sidebar-admin-active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(109, 40, 217, 0.12));
+  box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.15);
+}
+
+[data-theme="dark"] .sidebar-admin-active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.18), rgba(109, 40, 217, 0.18));
+  box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.25);
+}
+
+.sidebar-user-card {
+  background: rgba(241, 245, 249, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  border-radius: 16px;
+}
+
+[data-theme="dark"] .sidebar-user-card {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+.sidebar-section-label {
+  @apply text-[10px] font-bold uppercase tracking-widest px-3 mb-1.5;
 }

@@ -21,12 +21,12 @@ const Channels = () => {
   useEffect(() => {
     checkWhatsAppStatus();
     checkTelegramStatus();
-    // Poll status every 5 seconds when modal is open
+    // Poll QR every 3 seconds only when modal is open AND not yet connected
     const interval = setInterval(() => {
-      if (showQRModal && !connecting) {
+      if (showQRModal && !connecting && !isConnected) {
         pollQRCode();
       }
-    }, 5000);
+    }, 3000);
     return () => clearInterval(interval);
   }, [showQRModal, connecting]);
 
@@ -38,13 +38,13 @@ const Channels = () => {
         channelsAPI.getAll()
       ]);
       const persistedWhatsApp = (channelsResp?.channels || []).find((ch) => ch.type === 'whatsapp');
-      const nextStatus = persistedWhatsApp?.status || whatsappResp?.data?.status || 'not_initialized';
+      const nextStatus = persistedWhatsApp?.status || whatsappResp?.status || 'not_initialized';
       setWhatsappStatus({
-        ...(whatsappResp?.data || {}),
+        ...(whatsappResp || {}),
         persistedStatus: persistedWhatsApp?.status || null,
         connectedAt: persistedWhatsApp?.connectedAt || null,
         lastSyncAt: persistedWhatsApp?.lastSyncAt || null,
-        lastError: persistedWhatsApp?.lastError || whatsappResp?.data?.lastError || null,
+        lastError: persistedWhatsApp?.lastError || whatsappResp?.lastError || null,
         status: nextStatus
       });
       if ((nextStatus === 'initializing' || nextStatus === 'connecting' || nextStatus === 'qr_ready') && !showQRModal) {
@@ -95,16 +95,16 @@ const Channels = () => {
   const pollQRCode = async () => {
     try {
       const { data } = await whatsappAPI.getQR();
-      if (data?.qr) {
-        setQrCode(data.qr);
-      }
-      if (data?.status === 'initializing' || data?.status === 'connecting' || data?.status === 'qr_ready') {
-        setShowQRModal(true);
-      }
       if (data?.status === 'connected') {
         setWhatsappStatus({ status: 'connected' });
-        setShowQRModal(false);
         toast.success('WhatsApp connected successfully!');
+        setShowQRModal(false);
+        setQrCode(null);
+        checkWhatsAppStatus();
+        return;
+      }
+      if (data?.qr) {
+        setQrCode(data.qr);
       }
     } catch (error) {
       console.error('Error polling QR:', error);
@@ -117,38 +117,41 @@ const Channels = () => {
       setQrCode(null);
       setShowQRModal(true);
 
+      // Disconnect any existing client first to get a fresh QR
+      try { await whatsappAPI.disconnect(); } catch (e) { /* ignore */ }
+      await new Promise(r => setTimeout(r, 1000));
+
       // Initialize connection
       const { data: connectData } = await whatsappAPI.connect();
-      // If QR is immediately available (client already existed)
       if (connectData?.qr) {
         setQrCode(connectData.qr);
       }
       toast.success('جاري توليد رمز QR...');
 
-      // Poll for QR code
+      // Poll for QR code (keep polling to pick up refreshed QRs)
       let attempts = 0;
-      const maxAttempts = 12;
+      const maxAttempts = 20;
       const poll = async () => {
         if (attempts >= maxAttempts) return;
         attempts++;
         try {
           const { data } = await whatsappAPI.getQR();
-          if (data?.qr) {
-            setQrCode(data.qr);
-            return;
-          }
           if (data?.status === 'connected') {
             setWhatsappStatus({ status: 'connected' });
-            setShowQRModal(false);
             toast.success('WhatsApp connected successfully!');
+            setShowQRModal(false);
+            setQrCode(null);
+            checkWhatsAppStatus();
             return;
+          }
+          if (data?.qr) {
+            setQrCode(data.qr);
           }
         } catch (e) { /* ignore poll errors */ }
         await new Promise(r => setTimeout(r, 3000));
         await poll();
       };
       await poll();
-      await checkWhatsAppStatus();
     } catch (error) {
       toast.error('فشل في الاتصال بواتس آب');
       setShowQRModal(false);
@@ -212,16 +215,23 @@ const Channels = () => {
       }
       toast.success('جاري تحديث رمز QR...');
 
-      // Poll for new QR
+      // Keep polling for refreshed QRs (don't stop after first one)
       let attempts = 0;
       const poll = async () => {
-        if (attempts >= 10) return;
+        if (attempts >= 20) return;
         attempts++;
         try {
           const { data } = await whatsappAPI.getQR();
+          if (data?.status === 'connected') {
+            setWhatsappStatus({ status: 'connected' });
+            toast.success('WhatsApp connected successfully!');
+            setShowQRModal(false);
+            setQrCode(null);
+            checkWhatsAppStatus();
+            return;
+          }
           if (data?.qr) {
             setQrCode(data.qr);
-            return;
           }
         } catch (e) { /* ignore */ }
         await new Promise(r => setTimeout(r, 3000));
@@ -377,15 +387,47 @@ const Channels = () => {
                   <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>يمكنك الآن إرسال واستقبال الرسائل</p>
                 </div>
               </div>
-              
+
+              {/* Connection Details */}
+              <div className={`grid grid-cols-2 md:grid-cols-3 gap-3`}>
+                {whatsappStatus?.info?.me && (
+                  <div className={`p-3 rounded-xl ${theme === 'light' ? 'bg-slate-100' : 'bg-dark-700'}`}>
+                    <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>رقم الهاتف</p>
+                    <p className={`font-semibold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>+{whatsappStatus.info.me}</p>
+                  </div>
+                )}
+                {whatsappStatus?.info?.pushname && (
+                  <div className={`p-3 rounded-xl ${theme === 'light' ? 'bg-slate-100' : 'bg-dark-700'}`}>
+                    <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>اسم العرض</p>
+                    <p className={`font-semibold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>{whatsappStatus.info.pushname}</p>
+                  </div>
+                )}
+                {whatsappStatus?.info?.platform && (
+                  <div className={`p-3 rounded-xl ${theme === 'light' ? 'bg-slate-100' : 'bg-dark-700'}`}>
+                    <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>المنصة</p>
+                    <p className={`font-semibold capitalize ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>{whatsappStatus.info.platform}</p>
+                  </div>
+                )}
+                {whatsappStatus?.connectedAt && (
+                  <div className={`p-3 rounded-xl ${theme === 'light' ? 'bg-slate-100' : 'bg-dark-700'}`}>
+                    <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>تاريخ الاتصال</p>
+                    <p className={`font-semibold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>{new Date(whatsappStatus.connectedAt).toLocaleDateString('ar-EG')}</p>
+                  </div>
+                )}
+                <div className={`p-3 rounded-xl ${theme === 'light' ? 'bg-green-50 border border-green-200' : 'bg-green-500/10 border border-green-500/20'}`}>
+                  <p className={`text-xs ${theme === 'light' ? 'text-green-600' : 'text-green-400'}`}>الحالة</p>
+                  <p className={`font-semibold ${theme === 'light' ? 'text-green-700' : 'text-green-400'}`}>● متصل الآن</p>
+                </div>
+              </div>
+
               {/* Actions */}
               <div className="flex flex-wrap gap-3">
                 <Link to="/conversations" className="btn-primary py-2.5 px-4 flex items-center gap-2">
                   <Scan className="w-4 h-4" />
                   عرض المحادثات
                 </Link>
-                <button 
-                  onClick={handleDisconnect} 
+                <button
+                  onClick={handleDisconnect}
                   className="px-4 py-2.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-red-500/30 transition-colors flex items-center gap-2"
                 >
                   <X className="w-4 h-4" />
