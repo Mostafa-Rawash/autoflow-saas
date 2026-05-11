@@ -3,8 +3,10 @@ import { Plus, Search, Edit2, Trash2, Copy, Filter, FileText, Sparkles } from 'l
 import { templatesAPI } from '../api';
 import useAuthStore from '../store/authStore';
 import toast from 'react-hot-toast';
+import { useTheme } from '../context/ThemeContext';
 
 const Templates = () => {
+  const theme = useTheme();
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -100,8 +102,8 @@ const Templates = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">قوالب الرسائل</h1>
-          <p className="text-gray-400 mt-1">إنشاء وإدارة قوالب الردود السريعة</p>
+          <h1 className={`text-2xl font-bold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>قوالب الرسائل</h1>
+          <p className={`mt-1 ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>إنشاء وإدارة قوالب الردود السريعة</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -116,46 +118,46 @@ const Templates = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4 text-center">
           <p className="text-2xl font-bold text-primary-500">{templates.length}</p>
-          <p className="text-sm text-gray-500">إجمالي القوالب</p>
+          <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>إجمالي القوالب</p>
         </div>
         <div className="card p-4 text-center">
           <p className="text-2xl font-bold text-green-400">
             {templates.filter(t => t.category === 'greeting').length}
           </p>
-          <p className="text-sm text-gray-500">ترحيب</p>
+          <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>ترحيب</p>
         </div>
         <div className="card p-4 text-center">
           <p className="text-2xl font-bold text-blue-400">
             {templates.filter(t => t.category === 'faq').length}
           </p>
-          <p className="text-sm text-gray-500">أسئلة شائعة</p>
+          <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>أسئلة شائعة</p>
         </div>
         <div className="card p-4 text-center">
           <p className="text-2xl font-bold text-purple-400">
             {templates.filter(t => t.category === 'promotion').length}
           </p>
-          <p className="text-sm text-gray-500">عروض</p>
+          <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>عروض</p>
         </div>
       </div>
 
       {/* Search & Filter */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+          <Search className={`absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`} />
           <input
             type="text"
             placeholder="ابحث في القوالب..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-dark-800 border border-dark-600 rounded-lg py-3 pr-10 pl-4 focus:border-primary-500 outline-none"
+            className={`w-full ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg py-3 pr-10 pl-4 focus:border-primary-500 outline-none`}
           />
         </div>
         <div className="flex items-center gap-2">
-          <Filter className="w-5 h-5 text-gray-500" />
+          <Filter className={`w-5 h-5 ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`} />
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="bg-dark-800 border border-dark-600 rounded-lg py-3 px-4 focus:border-primary-500 outline-none"
+            className={`${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg py-3 px-4 focus:border-primary-500 outline-none`}
           >
             {categories.map(cat => (
               <option key={cat.id} value={cat.id}>{cat.name}</option>
@@ -175,7 +177,7 @@ const Templates = () => {
                     <FileText className="w-5 h-5 text-primary-500" />
                   </div>
                   <div>
-                    <h3 className="font-bold">{template.name}</h3>
+                    <h3 className={`font-bold ${theme === 'light' ? 'text-slate-900' : ''}`}>{template.name}</h3>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${getCategoryBadge(template.category)}`}>
                       {categories.find(c => c.id === template.category)?.name || 'مخصص'}
                     </span>
@@ -184,17 +186,17 @@ const Templates = () => {
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => handleCopy(template)}
-                    className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+                    className={`p-2 ${theme === 'light' ? 'hover:bg-slate-100' : 'hover:bg-white/5'} rounded-lg transition-colors`}
                     title="نسخ"
                   >
-                    <Copy className="w-4 h-4 text-gray-400" />
+                    <Copy className={`w-4 h-4 ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`} />
                   </button>
                   <button
                     onClick={() => setEditingTemplate(template)}
-                    className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+                    className={`p-2 ${theme === 'light' ? 'hover:bg-slate-100' : 'hover:bg-white/5'} rounded-lg transition-colors`}
                     title="تعديل"
                   >
-                    <Edit2 className="w-4 h-4 text-gray-400" />
+                    <Edit2 className={`w-4 h-4 ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`} />
                   </button>
                   <button
                     onClick={() => handleDelete(template._id)}
@@ -206,7 +208,7 @@ const Templates = () => {
                 </div>
               </div>
               
-              <p className="text-sm text-gray-300 line-clamp-3 mb-3">
+              <p className={`text-sm line-clamp-3 mb-3 ${theme === 'light' ? 'text-slate-600' : 'text-gray-300'}`}>
                 {template.content?.text || template.content}
               </p>
               
@@ -220,11 +222,11 @@ const Templates = () => {
                 </div>
               )}
               
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-dark-600">
-                <span className="text-xs text-gray-500">
+              <div className={`flex items-center justify-between mt-3 pt-3 border-t ${theme === 'light' ? 'border-slate-200' : 'border-dark-600'}`}>
+                <span className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>
                   استخدام: {template.usageCount || 0} مرة
                 </span>
-                <span className="text-xs text-gray-500">
+                <span className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>
                   {template.language === 'ar' ? 'عربي' : template.language === 'en' ? 'English' : 'مختلط'}
                 </span>
               </div>
@@ -234,8 +236,8 @@ const Templates = () => {
       ) : (
         <div className="card p-8 text-center">
           <div className="text-6xl mb-4">📝</div>
-          <h2 className="text-xl font-bold mb-2">لا توجد قوالب</h2>
-          <p className="text-gray-400 mb-4">
+          <h2 className={`text-xl font-bold mb-2 ${theme === 'light' ? 'text-slate-900' : ''}`}>لا توجد قوالب</h2>
+          <p className={`mb-4 ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
             ابدأ بإنشاء قوالب للردود السريعة على العملاء
           </p>
           <button
@@ -298,8 +300,8 @@ const CreateTemplateModal = ({ onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="card p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">قالب جديد</h2>
+      <div className={`card p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto ${theme === 'light' ? 'bg-white border border-slate-200' : ''}`}>
+        <h2 className={`text-xl font-bold mb-4 ${theme === 'light' ? 'text-slate-900' : ''}`}>قالب جديد</h2>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -308,7 +310,7 @@ const CreateTemplateModal = ({ onClose, onSave }) => {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full bg-dark-800 border border-dark-600 rounded-lg py-2 px-4"
+              className={`w-full ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg py-2 px-4`}
               placeholder="مثال: ترحيب بالعميل الجديد"
               required
             />
@@ -319,7 +321,7 @@ const CreateTemplateModal = ({ onClose, onSave }) => {
             <select
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full bg-dark-800 border border-dark-600 rounded-lg py-2 px-4"
+              className={`w-full ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg py-2 px-4`}
             >
               <option value="greeting">ترحيب</option>
               <option value="faq">أسئلة شائعة</option>
@@ -335,7 +337,7 @@ const CreateTemplateModal = ({ onClose, onSave }) => {
             <textarea
               value={formData.content}
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              className="w-full bg-dark-800 border border-dark-600 rounded-lg py-2 px-4 resize-none"
+              className={`w-full ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg py-2 px-4 resize-none`}
               rows={4}
               placeholder="مرحباً {{name}}! شكراً لتواصلك معنا..."
               required
@@ -349,7 +351,7 @@ const CreateTemplateModal = ({ onClose, onSave }) => {
                 type="text"
                 value={variableInput}
                 onChange={(e) => setVariableInput(e.target.value)}
-                className="flex-1 bg-dark-800 border border-dark-600 rounded-lg py-2 px-4"
+                className={`flex-1 ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg py-2 px-4`}
                 placeholder="اسم المتغير (مثال: name)"
               />
               <button
@@ -429,8 +431,8 @@ const EditTemplateModal = ({ template, onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="card p-6 w-full max-w-lg">
-        <h2 className="text-xl font-bold mb-4">تعديل القالب</h2>
+      <div className={`card p-6 w-full max-w-lg ${theme === 'light' ? 'bg-white border border-slate-200' : ''}`}>
+        <h2 className={`text-xl font-bold mb-4 ${theme === 'light' ? 'text-slate-900' : ''}`}>تعديل القالب</h2>
         
         <div className="space-y-4">
           <div>
@@ -439,7 +441,7 @@ const EditTemplateModal = ({ template, onClose, onSave }) => {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full bg-dark-800 border border-dark-600 rounded-lg py-2 px-4"
+              className={`w-full ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg py-2 px-4`}
             />
           </div>
 
@@ -448,7 +450,7 @@ const EditTemplateModal = ({ template, onClose, onSave }) => {
             <select
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full bg-dark-800 border border-dark-600 rounded-lg py-2 px-4"
+              className={`w-full ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg py-2 px-4`}
             >
               <option value="greeting">ترحيب</option>
               <option value="faq">أسئلة شائعة</option>
@@ -464,7 +466,7 @@ const EditTemplateModal = ({ template, onClose, onSave }) => {
             <textarea
               value={formData.content}
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              className="w-full bg-dark-800 border border-dark-600 rounded-lg py-2 px-4 resize-none"
+              className={`w-full ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg py-2 px-4 resize-none`}
               rows={4}
             />
           </div>

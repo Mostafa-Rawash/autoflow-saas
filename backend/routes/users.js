@@ -2,9 +2,24 @@ const express = require('express');
 const router = express.Router();
 const { body, param, validationResult } = require('express-validator');
 const User = require('../models/User');
+const Role = require('../models/Role');
 const Subscription = require('../models/Subscription');
 const TeamInvitation = require('../models/TeamInvitation');
 const { auth, authorize, hasPermission, checkSubscription, canAdd } = require('../middleware/auth');
+
+// Role hierarchy levels (higher = more privileged)
+const ROLE_HIERARCHY = {
+  owner: 100,
+  admin: 80,
+  manager: 60,
+  agent: 40,
+  viewer: 20
+};
+
+// Check if actor can act on target based on role hierarchy
+const canModifyUser = (actorRole, targetRole) => {
+  return (ROLE_HIERARCHY[actorRole] || 0) > (ROLE_HIERARCHY[targetRole] || 0);
+};
 
 // Validation helper
 const validate = (req, res, next) => {
@@ -67,13 +82,24 @@ router.put('/:id', [
   body('settings.notifications').optional().isObject()
 ], validate, auth, async (req, res) => {
   try {
-    // Only allow self-update or admin
-    if (req.params.id !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'owner') {
-      return res.status(403).json({ 
-        success: false,
-        error: 'Not authorized',
-        code: 'FORBIDDEN'
-      });
+    // Only allow self-update or users with higher role than target
+    if (req.params.id !== req.user.id) {
+      const targetUser = await User.findById(req.params.id);
+      if (!targetUser) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not found',
+          code: 'USER_NOT_FOUND'
+        });
+      }
+      // Must have higher role than target to modify them
+      if (!canModifyUser(req.user.role, targetUser.role)) {
+        return res.status(403).json({
+          success: false,
+          error: 'Not authorized to modify this user',
+          code: 'FORBIDDEN'
+        });
+      }
     }
     
     const { name, phone, avatar, settings } = req.body;
@@ -155,13 +181,22 @@ router.put('/:id/password', [
 
 // @route   POST /api/users/invite
 // @desc    Invite team member
-// @access  Private (Admin/Owner/Manager)
+// @access  Private (Admin/Owner/Manager) - cannot invite to roles equal or higher than own
 router.post('/invite', [
   body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
   body('role').isIn(['admin', 'manager', 'agent', 'viewer']).withMessage('Valid role required')
 ], validate, auth, hasPermission('inviteMembers'), checkSubscription, canAdd('teamMembers'), async (req, res) => {
   try {
     const { email, role } = req.body;
+
+    // Role hierarchy check: cannot invite users to equal or higher roles
+    if (!canModifyUser(req.user.role, role)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Cannot invite users to a role equal or higher than your own',
+        code: 'INSUFFICIENT_ROLE'
+      });
+    }
     
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -435,25 +470,53 @@ router.delete('/invite/:token', [
 
 // @route   DELETE /api/users/:id/team
 // @desc    Remove team member
-// @access  Private (Admin/Owner)
+// @access  Private (Admin/Owner) - cannot remove users with equal or higher role
 router.delete('/:id/team', [
   param('id').isMongoId()
 ], validate, auth, hasPermission('removeMembers'), async (req, res) => {
   try {
+    // Find the target team member
+    const teamEntry = req.user.team?.find(t => t.user.toString() === req.params.id);
+    if (!teamEntry) {
+      return res.status(404).json({
+        success: false,
+        error: 'Team member not found',
+        code: 'MEMBER_NOT_FOUND'
+      });
+    }
+
+    // Role hierarchy check: cannot remove users with equal or higher role
+    if (!canModifyUser(req.user.role, teamEntry.role)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Cannot remove a team member with equal or higher role',
+        code: 'INSUFFICIENT_ROLE'
+      });
+    }
+
+    // Cannot remove the owner
+    if (teamEntry.role === 'owner') {
+      return res.status(403).json({
+        success: false,
+        error: 'Cannot remove the account owner',
+        code: 'CANNOT_REMOVE_OWNER'
+      });
+    }
+
     // Remove from team array
     req.user.team = req.user.team.filter(t => t.user.toString() !== req.params.id);
     await req.user.save();
-    
+
     // Update subscription usage
     await Subscription.findOneAndUpdate(
       { user: req.user._id },
       { $inc: { 'usage.teamMembers': -1 } }
     );
-    
+
     res.json({ success: true, message: 'Team member removed' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: 'Server error',
       code: 'SERVER_ERROR'

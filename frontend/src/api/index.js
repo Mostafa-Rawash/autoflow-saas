@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-// Use environment variable or default to port 5000 (matching backend default)
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
@@ -13,19 +12,10 @@ const api = axios.create({
 // Request interceptor - add auth token
 api.interceptors.request.use(
   (config) => {
-    const accessToken = localStorage.getItem('accessToken');
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-    
-    // For refresh requests, use refresh token
-    if (config.url === '/auth/refresh') {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (refreshToken) {
-        config.headers['x-refresh-token'] = refreshToken;
-      }
-    }
-    
     return config;
   },
   (error) => {
@@ -33,104 +23,18 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor - handle errors and token refresh
-let isRefreshing = false;
-let failedQueue = [];
-
-const processQueue = (error, token = null) => {
-  failedQueue.forEach(prom => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-  failedQueue = [];
-};
-
+// Response interceptor - handle errors
 api.interceptors.response.use(
-  (response) => {
-    // If response contains new tokens, store them
-    if (response.data.accessToken) {
-      localStorage.setItem('accessToken', response.data.accessToken);
-    }
-    if (response.data.refreshToken) {
-      localStorage.setItem('refreshToken', response.data.refreshToken);
-    }
-    return response;
-  },
-  async (error) => {
-    const originalRequest = error.config;
-
-    // If error is 401 and not a refresh request
-    if (error.response?.status === 401 && 
-        !originalRequest._retry && 
-        originalRequest.url !== '/auth/refresh' &&
-        originalRequest.url !== '/auth/login') {
-      
-      // Check if it's a token expired error
-      if (error.response?.data?.code === 'TOKEN_EXPIRED') {
-        
-        if (isRefreshing) {
-          // Add to queue
-          return new Promise((resolve, reject) => {
-            failedQueue.push({ resolve, reject });
-          }).then(token => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return api(originalRequest);
-          }).catch(err => {
-            return Promise.reject(err);
-          });
-        }
-
-        originalRequest._retry = true;
-        isRefreshing = true;
-
-        try {
-          const refreshToken = localStorage.getItem('refreshToken');
-          if (!refreshToken) {
-            throw new Error('No refresh token');
-          }
-
-          const response = await axios.post(`${API_URL}/auth/refresh`, {}, {
-            headers: {
-              'x-refresh-token': refreshToken
-            }
-          });
-
-          const { accessToken, refreshToken: newRefreshToken } = response.data;
-          
-          localStorage.setItem('accessToken', accessToken);
-          localStorage.setItem('refreshToken', newRefreshToken);
-          
-          api.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          
-          processQueue(null, accessToken);
-          
-          return api(originalRequest);
-        } catch (refreshError) {
-          processQueue(refreshError, null);
-          // Clear tokens and redirect to login
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('token'); // Legacy
-          window.location.href = '/login';
-          return Promise.reject(refreshError);
-        } finally {
-          isRefreshing = false;
-        }
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+      // Use React Router navigation instead of hard redirect
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
       }
     }
-    
-    // Handle other 401 errors
-    if (error.response?.status === 401) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('token');
-      window.location.href = '/login';
-    }
-    
     return Promise.reject(error);
   }
 );
@@ -195,16 +99,37 @@ export const subscriptionsAPI = {
   getInvoices: () => api.get('/subscriptions/invoices')
 };
 
-// Admin API
-export const adminAPI = {
-  getDashboard: () => api.get('/admin/dashboard'),
-  getUsers: (params) => api.get('/admin/users', { params }),
-  getUser: (id) => api.get(`/admin/users/${id}`),
-  updateUserPlan: (id, data) => api.put(`/admin/users/${id}/plan`, data),
-  updateUserStatus: (id, data) => api.put(`/admin/users/${id}/status`, data),
-  getWhatsAppStatus: () => api.get('/admin/whatsapp/status'),
-  cleanupWhatsApp: () => api.post('/admin/whatsapp/cleanup'),
-  getConfig: () => api.get('/admin/config')
+// WhatsApp API (unified with backend)
+export const whatsappAPI = {
+  getQR: () => api.get('/whatsapp/qr'),
+  getStatus: () => api.get('/whatsapp/status'),
+  connect: () => api.post('/whatsapp/connect'),
+  disconnect: () => api.post('/whatsapp/disconnect'),
+  getChats: () => api.get('/whatsapp/chats'),
+  getMessages: (chatId, limit = 50) => api.get(`/whatsapp/chats/${chatId}/messages?limit=${limit}`),
+  getContacts: () => api.get('/whatsapp/contacts'),
+  send: (data) => api.post('/whatsapp/send', data),
+  refreshQR: () => api.post('/whatsapp/refresh-qr')
+};
+
+// Telegram API (bot-based)
+export const telegramAPI = {
+  getHealth: () => api.get('/telegram/health'),
+  getStatus: () => api.get('/telegram/status'),
+  connect: (data) => api.post('/telegram/connect', data),
+  disconnect: () => api.post('/telegram/disconnect'),
+  send: (data) => api.post('/telegram/send', data)
+};
+
+// Logs API (admin only)
+export const logsAPI = {
+  getAll: (params) => api.get('/logs', { params }),
+  getOne: (id) => api.get(`/logs/${id}`),
+  getStats: (params) => api.get('/logs/stats', { params }),
+  resolve: (id) => api.put(`/logs/${id}/resolve`),
+  delete: (id) => api.delete(`/logs/${id}`),
+  clear: (params) => api.delete('/logs', { params }),
+  logFrontendError: (data) => api.post('/logs/frontend', data)
 };
 
 export default api;

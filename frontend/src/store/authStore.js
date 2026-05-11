@@ -11,25 +11,35 @@ const useAuthStore = create(
       loading: false,
       error: null,
 
-      login: async (email, password) => {
+      login: async (email, password, rememberMe = true) => {
         set({ loading: true, error: null });
         try {
-          const { data } = await authAPI.login({ email, password });
-          localStorage.setItem('accessToken', data.accessToken);
-          localStorage.setItem('refreshToken', data.refreshToken);
-          // Keep legacy token for compatibility
-          localStorage.setItem('token', data.accessToken);
+          const credentials = { email, password };
+          const { data } = await authAPI.login(credentials);
+          const token = data.accessToken;
+          if (rememberMe) {
+            localStorage.setItem('token', token);
+          } else {
+            sessionStorage.setItem('token', token);
+          }
           set({
             user: data.user,
-            token: data.accessToken,
+            token,
             isAuthenticated: true,
             loading: false
           });
           return { success: true };
         } catch (error) {
-          const message = error.response?.data?.error || 'Login failed';
-          set({ loading: false, error: message });
-          return { success: false, error: message };
+          const status = error.response?.status;
+          const rawMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Login failed';
+          const normalizedMessage =
+            status === 429 ||
+            String(rawMessage).toLowerCase().includes('too many requests') ||
+            String(rawMessage).toLowerCase().includes('rate limit')
+              ? 'طلبات كثيرة جدًا. من فضلك انتظر قليلًا ثم حاول مرة أخرى.'
+              : rawMessage;
+          set({ loading: false, error: normalizedMessage });
+          return { success: false, error: normalizedMessage };
         }
       },
 
@@ -37,28 +47,32 @@ const useAuthStore = create(
         set({ loading: true, error: null });
         try {
           const { data } = await authAPI.register(userData);
-          localStorage.setItem('accessToken', data.accessToken);
-          localStorage.setItem('refreshToken', data.refreshToken);
-          // Keep legacy token for compatibility
-          localStorage.setItem('token', data.accessToken);
+          const token = data.accessToken;
+          localStorage.setItem('token', token);
           set({
             user: data.user,
-            token: data.accessToken,
+            token,
             isAuthenticated: true,
             loading: false
           });
           return { success: true };
         } catch (error) {
-          const message = error.response?.data?.error || 'Registration failed';
-          set({ loading: false, error: message });
-          return { success: false, error: message };
+          const status = error.response?.status;
+          const rawMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Registration failed';
+          const normalizedMessage =
+            status === 429 ||
+            String(rawMessage).toLowerCase().includes('too many requests') ||
+            String(rawMessage).toLowerCase().includes('rate limit')
+              ? 'طلبات كثيرة جدًا. من فضلك انتظر قليلًا ثم حاول مرة أخرى.'
+              : rawMessage;
+          set({ loading: false, error: normalizedMessage });
+          return { success: false, error: normalizedMessage };
         }
       },
 
       logout: () => {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
         localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         set({
           user: null,
           token: null,
@@ -68,16 +82,10 @@ const useAuthStore = create(
       },
 
       fetchUser: async () => {
-        const accessToken = localStorage.getItem('accessToken');
-        const refreshToken = localStorage.getItem('refreshToken');
-        
-        if (!accessToken && !refreshToken) {
-          // Check legacy token
-          const legacyToken = localStorage.getItem('token');
-          if (!legacyToken) {
-            set({ loading: false });
-            return;
-          }
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) {
+          set({ loading: false, isAuthenticated: false });
+          return;
         }
 
         set({ loading: true });
@@ -85,13 +93,11 @@ const useAuthStore = create(
           const { data } = await authAPI.getMe();
           set({
             user: data.user,
-            token: localStorage.getItem('accessToken') || localStorage.getItem('token'),
+            token,
             isAuthenticated: true,
             loading: false
           });
         } catch (error) {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
           localStorage.removeItem('token');
           set({
             user: null,

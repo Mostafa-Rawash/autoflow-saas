@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, TrendingDown, Users, MessageSquare, RefreshCw, Calendar } from 'lucide-react';
 import { analyticsAPI } from '../api';
 import toast from 'react-hot-toast';
+import { useTheme } from '../context/ThemeContext';
 
 const Analytics = () => {
+  const theme = useTheme();
   const [overview, setOverview] = useState({
     conversations: { total: 0, active: 0, resolved: 0 },
     messages: { total: 0, byBot: 0, byAgent: 0, byContact: 0 }
@@ -105,14 +107,14 @@ const Analytics = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">التحليلات</h1>
-          <p className="text-gray-400 mt-1">نظرة عامة على أداء محادثاتك</p>
+          <h1 className={`text-2xl font-bold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>التحليلات</h1>
+          <p className={`mt-1 ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>نظرة عامة على أداء محادثاتك</p>
         </div>
         <div className="flex items-center gap-3">
           <select
             value={days}
             onChange={(e) => setDays(e.target.value)}
-            className="bg-dark-800 border border-dark-600 rounded-lg py-2 px-4"
+            className={`${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg py-2 px-4`}
           >
             <option value={7}>آخر 7 أيام</option>
             <option value={14}>آخر 14 يوم</option>
@@ -138,7 +140,7 @@ const Analytics = () => {
               </div>
             </div>
             <p className="text-2xl font-bold">{stat.value.toLocaleString()}</p>
-            <p className="text-sm text-gray-500">{stat.title}</p>
+            <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>{stat.title}</p>
           </div>
         ))}
       </div>
@@ -146,8 +148,8 @@ const Analytics = () => {
       {/* Timeline Chart */}
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold">المحادثات عبر الوقت</h3>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
+          <h3 className={`font-bold ${theme === 'light' ? 'text-slate-900' : ''}`}>المحادثات عبر الوقت</h3>
+          <div className={`flex items-center gap-2 text-sm ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>
             <Calendar className="w-4 h-4" />
             آخر {days} يوم
           </div>
@@ -161,7 +163,7 @@ const Analytics = () => {
                   className="w-full bg-primary-500 rounded-t transition-all duration-300 hover:bg-primary-400"
                   style={{ height: `${(item.count / maxTimelineValue) * 100}%`, minHeight: '4px' }}
                 />
-                <span className="text-xs text-gray-500 mt-2 truncate w-full text-center">
+                <span className={`text-xs mt-2 truncate w-full text-center ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>
                   {new Date(item._id).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}
                 </span>
                 <span className="text-xs text-primary-400">{item.count}</span>
@@ -169,7 +171,7 @@ const Analytics = () => {
             ))}
           </div>
         ) : (
-          <div className="h-48 flex items-center justify-center text-gray-500">
+          <div className={`h-48 flex items-center justify-center ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>
             <div className="text-center">
               <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p>لا توجد بيانات كافية لعرضها</p>
@@ -183,7 +185,7 @@ const Analytics = () => {
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Channels Breakdown */}
         <div className="card p-6">
-          <h3 className="font-bold mb-4">توزيع المحادثات حسب القناة</h3>
+          <h3 className={`font-bold mb-4 ${theme === 'light' ? 'text-slate-900' : ''}`}>توزيع المحادثات حسب القناة</h3>
           
           {channels.length > 0 ? (
             <div className="space-y-4">
@@ -198,9 +200,9 @@ const Analytics = () => {
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
                       <span className="capitalize font-medium">{item._id}</span>
-                      <span className="text-sm text-gray-400">{item.count} محادثة</span>
+                      <span className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>{item.count} محادثة</span>
                     </div>
-                    <div className="w-full h-2 bg-dark-700 rounded-full overflow-hidden">
+                    <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'light' ? 'bg-slate-200' : 'bg-dark-700'}`}>
                       <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{
@@ -214,7 +216,7 @@ const Analytics = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
+            <div className={`text-center py-8 ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>
               <p>لا توجد محادثات بعد</p>
             </div>
           )}
@@ -222,10 +224,10 @@ const Analytics = () => {
 
         {/* Message Distribution */}
         <div className="card p-6">
-          <h3 className="font-bold mb-4">توزيع الرسائل حسب المرسل</h3>
+          <h3 className={`font-bold mb-4 ${theme === 'light' ? 'text-slate-900' : ''}`}>توزيع الرسائل حسب المرسل</h3>
           
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-dark-800 rounded-lg">
+            <div className={`flex items-center justify-between p-3 ${theme === 'light' ? 'bg-slate-50 border border-slate-200' : 'bg-dark-800'} rounded-lg`}>
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
                   🤖
@@ -237,7 +239,7 @@ const Analytics = () => {
               </span>
             </div>
             
-            <div className="flex items-center justify-between p-3 bg-dark-800 rounded-lg">
+            <div className={`flex items-center justify-between p-3 ${theme === 'light' ? 'bg-slate-50 border border-slate-200' : 'bg-dark-800'} rounded-lg`}>
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
                   👤
@@ -249,7 +251,7 @@ const Analytics = () => {
               </span>
             </div>
             
-            <div className="flex items-center justify-between p-3 bg-dark-800 rounded-lg">
+            <div className={`flex items-center justify-between p-3 ${theme === 'light' ? 'bg-slate-50 border border-slate-200' : 'bg-dark-800'} rounded-lg`}>
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
                   💬
@@ -264,7 +266,7 @@ const Analytics = () => {
 
           {/* Pie Chart Placeholder */}
           {overview.messages.total > 0 && (
-            <div className="mt-4 pt-4 border-t border-dark-600">
+            <div className={`mt-4 pt-4 border-t ${theme === 'light' ? 'border-slate-200' : 'border-dark-600'}`}>
               <div className="flex items-center justify-center gap-8">
                 <div className="relative w-32 h-32">
                   <svg viewBox="0 0 36 36" className="w-full h-full">
@@ -302,7 +304,7 @@ const Analytics = () => {
                 </div>
                 <div className="text-center">
                   <p className="text-3xl font-bold">{overview.messages.total.toLocaleString()}</p>
-                  <p className="text-sm text-gray-500">إجمالي الرسائل</p>
+                  <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>إجمالي الرسائل</p>
                 </div>
               </div>
             </div>
@@ -314,8 +316,8 @@ const Analytics = () => {
       <div className="card p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-bold">تصدير البيانات</h3>
-            <p className="text-sm text-gray-500">قم بتصدير تحليلاتك بصيغة JSON</p>
+            <h3 className={`font-bold ${theme === 'light' ? 'text-slate-900' : ''}`}>تصدير البيانات</h3>
+            <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>قم بتصدير تحليلاتك بصيغة JSON</p>
           </div>
           <button
             onClick={() => window.open('/api/analytics/export', '_blank')}

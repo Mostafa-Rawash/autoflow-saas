@@ -9,8 +9,8 @@ const { auth } = require('../middleware/auth');
 router.get('/', auth, async (req, res) => {
   try {
     const integrations = await Integration.find({ user: req.user.id });
-    
-    res.json({ success: true, integrations });
+
+    res.json({ success: true, channels: integrations, integrations });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

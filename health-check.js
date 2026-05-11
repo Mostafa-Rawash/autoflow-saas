@@ -1,9 +1,8 @@
 const axios = require('axios');
 
 const services = [
-  { name: 'Landing Pages', url: 'http://52.249.222.161:8080/health', expected: 200 },
-  { name: 'Dashboard', url: 'http://52.249.222.161:8081', expected: 200 },
-  { name: 'Backend API', url: 'http://52.249.222.161:5000/health', expected: 200 }
+  { name: 'Frontend Dashboard', url: 'http://localhost:3000', expected: 200 },
+  { name: 'Backend API', url: 'http://localhost:5000/health', expected: 200 }
 ];
 
 async function checkServices() {

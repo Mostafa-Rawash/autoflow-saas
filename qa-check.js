@@ -31,7 +31,7 @@ function runCheck(name, fn) {
 
 // 1. Frontend Build Check
 runCheck('Frontend Build', () => {
-  const frontendDir = path.join(__dirname, 'frontend/frontend');
+  const frontendDir = path.join(__dirname, 'frontend');
   execSync('npm run build', { cwd: frontendDir, stdio: 'pipe' });
   const buildDir = path.join(frontendDir, 'build');
   if (!fs.existsSync(buildDir)) throw new Error('Build directory not created');
@@ -40,7 +40,7 @@ runCheck('Frontend Build', () => {
 
 // 2. Backend Syntax Check
 runCheck('Backend Syntax', () => {
-  const backendDir = path.join(__dirname, 'frontend/backend');
+  const backendDir = path.join(__dirname, 'backend');
   const files = ['server.js', 'routes/auth.js', 'routes/conversations.js', 'routes/channels.js', 'routes/analytics.js'];
   for (const file of files) {
     execSync(`node --check ${file}`, { cwd: backendDir, stdio: 'pipe' });
@@ -48,26 +48,10 @@ runCheck('Backend Syntax', () => {
   return { output: 'All backend files have valid syntax' };
 });
 
-// 3. WhatsApp Service Check
-runCheck('WhatsApp Service', () => {
-  const waDir = path.join(__dirname, 'whatsapp-service/src');
-  const files = ['conversation-manager.js', 'app.js', 'server.js'];
-  for (const file of files) {
-    execSync(`node --check ${file}`, { cwd: waDir, stdio: 'pipe' });
-  }
-  return { output: 'WhatsApp service files valid' };
-});
-
-// 4. Landing Pages Check
-runCheck('Landing Pages', () => {
-  const landingDir = path.join(__dirname, 'landing-pages/src');
-  const files = fs.readdirSync(landingDir).filter(f => f.endsWith('.js'));
-  return { output: `${files.length} landing page generators found` };
-});
 
 // 5. Environment Variables Check
 runCheck('Environment Config', () => {
-  const envExample = path.join(__dirname, 'frontend/backend/.env.example');
+  const envExample = path.join(__dirname, 'backend/.env.example');
   if (fs.existsSync(envExample)) {
     const content = fs.readFileSync(envExample, 'utf8');
     const vars = content.split('\n').filter(line => line.includes('='));
@@ -78,8 +62,8 @@ runCheck('Environment Config', () => {
 
 // 6. Package Dependencies Check
 runCheck('Dependencies', () => {
-  const frontendPkg = require('./frontend/frontend/package.json');
-  const backendPkg = require('./frontend/backend/package.json');
+  const frontendPkg = require('./frontend/package.json');
+  const backendPkg = require('./backend/package.json');
   return { 
     output: `Frontend: ${Object.keys(frontendPkg.dependencies || {}).length} deps, Backend: ${Object.keys(backendPkg.dependencies || {}).length} deps`
   };
@@ -87,14 +71,14 @@ runCheck('Dependencies', () => {
 
 // 7. Model Schema Check
 runCheck('Database Models', () => {
-  const modelsDir = path.join(__dirname, 'frontend/backend/models');
+  const modelsDir = path.join(__dirname, 'backend/models');
   const models = fs.readdirSync(modelsDir).filter(f => f.endsWith('.js'));
   return { output: `${models.length} models found: ${models.join(', ')}` };
 });
 
 // 8. Routes Check
 runCheck('API Routes', () => {
-  const routesDir = path.join(__dirname, 'frontend/backend/routes');
+  const routesDir = path.join(__dirname, 'backend/routes');
   const routes = fs.readdirSync(routesDir).filter(f => f.endsWith('.js'));
   return { output: `${routes.length} routes found: ${routes.join(', ')}` };
 });

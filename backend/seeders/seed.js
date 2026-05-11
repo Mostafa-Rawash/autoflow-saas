@@ -5,10 +5,10 @@
 
 require('dotenv').config();
 const mongoose = require('mongoose');
-const User = require('./models/User');
-const Role = require('./models/Role');
-const Subscription = require('./models/Subscription');
-const Template = require('./models/Template');
+const User = require('../models/User');
+const Role = require('../models/Role');
+const Subscription = require('../models/Subscription');
+const Template = require('../models/Template');
 
 const seedDatabase = async () => {
   try {

@@ -1,53 +1,62 @@
 module.exports = {
-  content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
-    "./public/index.html"
-  ],
+  content: ["./src/**/*.{js,jsx,ts,tsx}", "./public/index.html"],
   theme: {
     extend: {
       colors: {
         primary: {
-          50: '#e6faf5',
-          100: '#ccf5eb',
-          200: '#99ebd7',
-          300: '#66e1c3',
-          400: '#33d7af',
-          500: '#00D4AA',
-          600: '#00aa88',
-          700: '#008066',
-          800: '#005544',
-          900: '#002b22'
+          50: "#eff6ff",
+          100: "#dbeafe",
+          200: "#bfdbfe",
+          300: "#93c5fd",
+          400: "#60a5fa",
+          500: "#3b82f6",
+          600: "#2563eb",
+          700: "#1d4ed8",
+          800: "#1e40af",
+          900: "#1e3a8a",
         },
-        whatsapp: '#25D366',
-        messenger: '#0084FF',
-        instagram: '#E4405F',
-        telegram: '#0088cc',
+        whatsapp: "#22c55e",
+        messenger: "#0ea5e9",
+        instagram: "#f43f5e",
+        telegram: "#06b6d4",
         dark: {
-          50: '#f7f7f8',
-          100: '#ececf1',
-          200: '#d9d9e3',
-          300: '#c5c5d2',
-          400: '#acacbe',
-          500: '#8e8ea0',
-          600: '#565869',
-          700: '#40414f',
-          800: '#343541',
-          900: '#202123',
-          950: '#0a0a1a'
-        }
+          50: "#f8fafc",
+          100: "#f1f5f9",
+          200: "#e2e8f0",
+          300: "#cbd5e1",
+          400: "#94a3b8",
+          500: "#64748b",
+          600: "#475569",
+          700: "#334155",
+          800: "#1e293b",
+          900: "#0f172a",
+          950: "#020617",
+        },
+        light: {
+          50: "#fafafa",
+          100: "#f5f5f5",
+          200: "#e5e5e5",
+          300: "#d4d4d4",
+          400: "#a3a3a3",
+          500: "#737373",
+          600: "#525252",
+          700: "#404040",
+          800: "#262626",
+          900: "#171717",
+        },
       },
       fontFamily: {
-        arabic: ['Cairo', 'sans-serif'],
-        sans: ['Inter', 'sans-serif']
+        arabic: ["Cairo", "sans-serif"],
+        sans: ["Inter", "sans-serif"],
       },
       animation: {
-        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'bounce-slow': 'bounce 2s infinite'
+        "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        "bounce-slow": "bounce 2s infinite",
       },
       backdropBlur: {
-        xs: '2px'
-      }
-    }
+        xs: "2px",
+      },
+    },
   },
-  plugins: []
-}
+  plugins: [],
+};

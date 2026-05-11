@@ -3,9 +3,11 @@ import useAuthStore from '../store/authStore';
 import { usersAPI } from '../api';
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 const Settings = () => {
   const { user, updateUser } = useAuthStore();
+  const theme = useTheme();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -89,12 +91,12 @@ const Settings = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">الإعدادات</h1>
+      <h1 className={`text-2xl font-bold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>الإعدادات</h1>
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Profile */}
         <div className="card p-6">
-          <h3 className="font-bold mb-4">الملف الشخصي</h3>
+          <h3 className={`font-bold mb-4 ${theme === 'light' ? 'text-slate-900' : ''}`}>الملف الشخصي</h3>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">الاسم</label>
@@ -103,7 +105,7 @@ const Settings = () => {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full bg-dark-800 border border-dark-600 rounded-lg py-2 px-4 focus:border-primary-500 focus:outline-none"
+                className={`w-full ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg py-2 px-4 focus:border-primary-500 focus:outline-none`}
               />
             </div>
             <div>
@@ -111,10 +113,10 @@ const Settings = () => {
               <input
                 type="email"
                 defaultValue={user?.email}
-                className="w-full bg-dark-800 border border-dark-600 rounded-lg py-2 px-4 opacity-50 cursor-not-allowed"
+                className={`w-full ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg py-2 px-4 opacity-50 cursor-not-allowed`}
                 disabled
               />
-              <p className="text-xs text-gray-500 mt-1">لا يمكن تغيير البريد الإلكتروني</p>
+              <p className={`text-xs mt-1 ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>لا يمكن تغيير البريد الإلكتروني</p>
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">رقم الهاتف</label>
@@ -123,7 +125,7 @@ const Settings = () => {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full bg-dark-800 border border-dark-600 rounded-lg py-2 px-4 focus:border-primary-500 focus:outline-none"
+                className={`w-full ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg py-2 px-4 focus:border-primary-500 focus:outline-none`}
               />
             </div>
           </div>
@@ -131,7 +133,7 @@ const Settings = () => {
 
         {/* Preferences */}
         <div className="card p-6">
-          <h3 className="font-bold mb-4">التفضيلات</h3>
+          <h3 className={`font-bold mb-4 ${theme === 'light' ? 'text-slate-900' : ''}`}>التفضيلات</h3>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">اللغة</label>
@@ -139,7 +141,7 @@ const Settings = () => {
                 name="language"
                 value={formData.language}
                 onChange={handleChange}
-                className="w-full bg-dark-800 border border-dark-600 rounded-lg py-2 px-4 focus:border-primary-500 focus:outline-none"
+                className={`w-full ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg py-2 px-4 focus:border-primary-500 focus:outline-none`}
               >
                 <option value="ar">العربية</option>
                 <option value="en">English</option>
@@ -151,7 +153,7 @@ const Settings = () => {
                 name="timezone"
                 value={formData.timezone}
                 onChange={handleChange}
-                className="w-full bg-dark-800 border border-dark-600 rounded-lg py-2 px-4 focus:border-primary-500 focus:outline-none"
+                className={`w-full ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg py-2 px-4 focus:border-primary-500 focus:outline-none`}
               >
                 <option value="Africa/Cairo">القاهرة (GMT+2)</option>
                 <option value="Asia/Riyadh">الرياض (GMT+3)</option>
@@ -164,7 +166,7 @@ const Settings = () => {
 
         {/* Notifications */}
         <div className="card p-6">
-          <h3 className="font-bold mb-4">الإشعارات</h3>
+          <h3 className={`font-bold mb-4 ${theme === 'light' ? 'text-slate-900' : ''}`}>الإشعارات</h3>
           <div className="space-y-3">
             <label className="flex items-center gap-3 cursor-pointer">
               <input 
@@ -201,12 +203,12 @@ const Settings = () => {
 
         {/* Subscription */}
         <div className="card p-6">
-          <h3 className="font-bold mb-4">الاشتراك</h3>
+          <h3 className={`font-bold mb-4 ${theme === 'light' ? 'text-slate-900' : ''}`}>الاشتراك</h3>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-dark-800 rounded-lg">
+            <div className={`flex items-center justify-between p-3 ${theme === 'light' ? 'bg-slate-50 border border-slate-200' : 'bg-dark-800'} rounded-lg`}>
               <div>
                 <p className="font-medium">الخطة الحالية</p>
-                <p className="text-sm text-gray-400">
+                <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
                   {user?.subscription?.plan === 'free' ? 'مجاني' :
                    user?.subscription?.plan === 'basic' ? 'أساسي' :
                    user?.subscription?.plan === 'standard' ? 'قياسي' :

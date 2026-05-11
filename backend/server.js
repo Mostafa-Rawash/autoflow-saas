@@ -36,8 +36,10 @@ const webhookRoutes = require('./routes/webhooks');
 const analyticsRoutes = require('./routes/analytics');
 const subscriptionRoutes = require('./routes/subscriptions');
 const whatsappRoutes = require('./routes/whatsapp');
+const telegramRoutes = require('./routes/telegram');
 const adminRoutes = require('./routes/admin');
 const queueRoutes = require('./routes/queue');
+const autoReplyRoutes = require('./routes/autoReplies');
 const Role = require('./models/Role');
 
 const allowedOrigins = [
@@ -71,7 +73,8 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 1000, // limit each IP to 1000 requests per windowMs
+  skip: (req) => req.path.startsWith('/api/auth/') // skip auth routes
 });
 app.use('/api/', limiter);
 
@@ -98,13 +101,27 @@ const startServer = async () => {
   }
 
   if (mongoUri) {
-    mongoose.connect(mongoUri)
+    mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 30000,
+      maxPoolSize: 10,
+      retryWrites: true,
+      retryReads: true
+    })
     .then(async () => {
       console.log('✅ MongoDB connected');
       // Seed default roles
       await Role.seedDefaults();
     })
     .catch(err => console.error('❌ MongoDB connection error:', err.message));
+
+    mongoose.connection.on('disconnected', () => {
+      console.log('⚠️ MongoDB disconnected, reconnecting...');
+    });
+    mongoose.connection.on('reconnected', () => {
+      console.log('✅ MongoDB reconnected');
+    });
   }
 
   // Routes
@@ -117,8 +134,10 @@ const startServer = async () => {
   app.use('/api/analytics', analyticsRoutes);
   app.use('/api/subscriptions', subscriptionRoutes);
   app.use('/api/whatsapp', whatsappRoutes);
+  app.use('/api/telegram', telegramRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/queue', queueRoutes);
+  app.use('/api/auto-replies', autoReplyRoutes);
 
   // Health check
   app.get('/health', (req, res) => {
@@ -145,6 +164,7 @@ const startServer = async () => {
         subscriptions: '/api/subscriptions',
         analytics: '/api/analytics',
         whatsapp: '/api/whatsapp',
+        telegram: '/api/telegram',
         webhooks: '/api/webhooks',
         admin: '/api/admin',
         queue: '/api/queue'
@@ -197,11 +217,33 @@ const startServer = async () => {
   httpServer.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📡 Socket.io enabled`);
-    
+
     // Start message queue processor
     const { messageQueueService } = require('./services/messageQueue.service');
     const whatsappService = require('./services/whatsapp.service');
     messageQueueService.startProcessor(whatsappService, 5000);
+
+    // Log Telegram service status and resume polling for connected bots
+    const telegramService = require('./services/telegram.service');
+    telegramService.healthCheck().then(health => {
+      console.log(`📱 Telegram service ready (max bots: ${health.maxBots})`);
+    });
+    // Resume polling for bots that were connected before restart
+    const Integration = require('./models/Integration');
+    Integration.find({ type: 'telegram', status: 'connected' }).then(integrations => {
+      for (const integration of integrations) {
+        if (integration.config?.botToken) {
+          telegramService.bots.set(integration.user.toString(), {
+            botToken: integration.config.botToken,
+            botUsername: integration.config.botUsername,
+            botName: integration.config.botName,
+            connectedAt: integration.connectedAt || new Date()
+          });
+          telegramService.startPolling(integration.user.toString());
+          console.log(`📱 Resumed Telegram polling for user ${integration.user}`);
+        }
+      }
+    }).catch(err => console.error('Error resuming Telegram bots:', err.message));
   });
 };
 

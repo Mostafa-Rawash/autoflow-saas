@@ -1,88 +1,45 @@
 # AutoFlow SaaS 🚀
 
-منصة اتصال ذكية متعددة القنوات - MERN Stack
+Arabic-first, multi-channel communication platform for MENA businesses. Unifies WhatsApp, Messenger, Instagram, Telegram into a single dashboard with AI automation.
 
-## ✨ المميزات الرئيسية
+## Features
 
-### SaaS Features
-- 🔐 **Multi-tenant** - كل مستخدم لديه مساحة معزولة
-- 👥 **Team Management** - دعوة أعضاء وإدارة صلاحيات
-- 💳 **Subscription System** - 4 خطط مع حدود واضحة
-- 📊 **Admin Dashboard** - إدارة المستخدمين والاشتراكات
-- 🔒 **Role-Based Access** - 5 أدوار مع صلاحيات دقيقة
+- **Multi-tenant** — Each user has isolated data and workspace
+- **Team Management** — Invite members, manage roles and permissions
+- **Subscription System** — 4 plans (Free → Premium) with clear limits
+- **Admin Dashboard** — Manage users, subscriptions, and activity logs
+- **Role-Based Access** — 5 roles with 27 granular permissions
+- **WhatsApp Integration** — Connect via QR code, multi-client support
+- **Telegram Integration** — Bot-based messaging with webhook support
+- **Real-time Messaging** — Socket.io for instant message delivery
+- **RTL Support** — Full Arabic interface with Cairo font
+- **Dark Mode** — Modern dark/light theme toggle
 
-### Communication Channels
-- 📱 **WhatsApp** - توصيل فوري عبر QR (مجاني!)
-- 💬 **Messenger** - قريباً
-- 📷 **Instagram** - قريباً
-- ✈️ **Telegram** - قريباً
-- 📧 **Email/SMS** - قريباً
+## Tech Stack
 
-### Technical Features
-- ⚡ **Real-time** - Socket.io للرسائل الفورية
-- 🎨 **RTL Support** - دعم كامل للعربية
-- 🌙 **Dark Mode** - تصميم عصري
-- 📱 **Responsive** - يعمل على جميع الأجهزة
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18, Tailwind CSS, Zustand |
+| Backend | Express.js, MongoDB (Mongoose), Socket.io |
+| Auth | JWT (access + refresh tokens) |
+| Caching | Redis (optional, falls back to in-memory) |
 
-## 🎯 نظرة عامة
+## Quick Start
 
-AutoFlow منصة SaaS توحد كل قنوات التواصل (WhatsApp, Messenger, Instagram, Telegram, وغيره) في لوحة تحكم واحدة مع أتمتة ذكية بالذكاء الاصطناعي.
-
-## 🏗️ البنية التقنية
-
-### Backend (Node.js + Express + MongoDB)
-```
-backend/
-├── models/          # Mongoose models
-│   ├── User.js
-│   ├── Conversation.js
-│   ├── Message.js
-│   ├── Template.js
-│   └── Integration.js
-├── routes/          # API routes
-│   ├── auth.js
-│   ├── users.js
-│   ├── conversations.js
-│   ├── channels.js
-│   ├── templates.js
-│   ├── webhooks.js
-│   └── analytics.js
-├── middleware/      # Auth & validation
-└── server.js        # Entry point
-```
-
-### Frontend (React + Tailwind CSS)
-```
-frontend/
-├── src/
-│   ├── api/         # Axios API client
-│   ├── store/       # Zustand state management
-│   ├── components/  # Reusable components
-│   └── pages/       # Page components
-│       ├── Login.js
-│       ├── Register.js
-│       ├── Dashboard.js
-│       └── ...
-└── public/
-```
-
-## 🚀 التشغيل
-
-### 1. المتطلبات
+### Prerequisites
 - Node.js 18+
-- MongoDB (محلي أو Atlas)
-- npm أو yarn
+- MongoDB (optional — in-memory mode available for dev)
 
-### 2. إعداد Backend
+### Backend
 ```bash
 cd backend
 npm install
 cp .env.example .env
-# عدّل .env بمعلوماتك
+# Edit .env: set JWT_SECRET (required), MONGODB_URI (optional)
 npm run dev
 ```
 
-### 3. إعداد Frontend
+### Frontend
 ```bash
 cd frontend
 npm install
@@ -90,79 +47,106 @@ cp .env.example .env
 npm start
 ```
 
-### 4. الوصول
+### Access
 - Frontend: http://localhost:3000
-- Backend: http://localhost:5000
-- API Docs: http://localhost:5000/api/docs
+- Backend API: http://localhost:5000/api
+- Health Check: http://localhost:5000/health
 
-## 📊 الميزات
+### Admin Access
+Set `SUPER_ADMIN_EMAIL` and `SUPER_ADMIN_PASSWORD` in `backend/.env`, then:
+```bash
+cd backend && npm run seed
+```
+Default password: `Admin123!`
 
-### ✅ المكتمل
-- [x] نظام المصادقة (JWT)
-- [x] إدارة المستخدمين
-- [x] لوحة تحكم تفاعلية
-- [x] تصميم RTL عربي
-- [x] تصميم dark mode
-- [x] Responsive design
+## Subscription Plans
 
-### 🔄 قيد التطوير
-- [ ] تكامل WhatsApp Business API
-- [ ] تكامل Messenger
-- [ ] تكامل Instagram
-- [ ] تكامل Telegram
-- [ ] محادثات real-time (Socket.io)
-- [ ] قوالب رسائل
-- [ ] تحليلات متقدمة
-- [ ] إدارة الفريق
+| Plan | Conversations | Messages | Team Members | Price |
+|------|-------------|----------|-------------|-------|
+| Free | 100 | 1,000 | 2 | EGP 0 |
+| Basic | 1,000 | 10,000 | 5 | EGP 299/mo |
+| Standard | 5,000 | 50,000 | 10 | EGP 599/mo |
+| Premium | ∞ | ∞ | ∞ | EGP 999/mo |
 
-## 🔌 التكاملات المدعومة
+14-day free trial on new accounts.
 
-| القناة | الحالة |
-|--------|--------|
-| WhatsApp Business API | 🔄 قيد التطوير |
-| Facebook Messenger | 🔄 قيد التطوير |
-| Instagram DM | 🔄 قيد التطوير |
-| Telegram Bot | 🔄 قيد التطوير |
-| Live Chat | 📋 مخطط |
-| Email (SMTP) | 📋 مخطط |
-| SMS (Twilio) | 📋 مخطط |
-| API مفتوح | 📋 مخطط |
+## Project Structure
 
-## 🔒 الأمان
+```
+autoflow-saas/
+├── backend/               # Express API + MongoDB + Socket.io
+│   ├── models/             # Mongoose models (User, Conversation, Message, etc.)
+│   ├── routes/             # API routes (auth, users, conversations, etc.)
+│   ├── middleware/          # Auth, admin, cache middleware
+│   ├── services/           # WhatsApp, Telegram, message queue, cache services
+│   ├── seeders/            # Database seed script
+│   ├── utils/              # Response helpers, error codes
+│   └── tests/              # Jest + Supertest tests
+├── frontend/               # React dashboard
+│   ├── src/
+│   │   ├── api/            # Axios client with interceptors
+│   │   ├── components/     # Layout, ErrorBoundary
+│   │   ├── pages/          # All page components + admin/
+│   │   ├── store/          # Zustand auth store
+│   │   └── utils/          # Error catcher
+│   └── public/
+├── scripts/                # Process management & deployment
+├── tests/                  # Root-level integration & E2E tests
+└── health-check.js         # Service health check
+```
 
-- Helmet.js للحماية
-- Rate limiting
-- JWT Authentication
-- Password hashing (bcrypt)
-- CORS configuration
-- Input validation
+## API Endpoints
 
-## 📱 التصميم
+### Public
+- `POST /api/auth/register` — Create account
+- `POST /api/auth/login` — Login
+- `GET /api/subscriptions/plans` — List plans
 
-- **Dark Mode** - تصميم داكن عصري
-- **RTL Support** - دعم كامل للعربية
-- **Glassmorphism** - تأثيرات شفافة
-- **Mobile First** - تصميم للموبايل أولاً
+### Protected (Auth Required)
+- `GET /api/auth/me` — Current user
+- `GET /api/conversations` — List conversations
+- `POST /api/whatsapp/connect` — Initialize WhatsApp
+- `GET /api/whatsapp/qr` — Get QR code
+- `POST /api/telegram/connect` — Connect Telegram bot
+- `GET /api/telegram/status` — Telegram bot status
 
-## 🛠️ التقنيات
+### Admin (Super Admin Only)
+- `GET /api/admin/dashboard` — Admin stats
+- `GET /api/admin/users` — List all users
 
-| المجال | التقنية |
-|--------|---------|
-| Frontend | React 18 |
-| Styling | Tailwind CSS |
-| State | Zustand |
-| Backend | Express.js |
-| Database | MongoDB |
-| Auth | JWT |
-| Real-time | Socket.io |
-| HTTP Client | Axios |
+## Environment Variables
 
-## 📞 التواصل
+### Backend (`backend/.env`)
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `JWT_SECRET` | Yes | 64+ char random string |
+| `MONGODB_URI` | No | MongoDB URI (empty = in-memory) |
+| `FRONTEND_URL` | No | CORS origin (default: http://localhost:3000) |
+| `REDIS_URL` | No | Redis URL (optional caching) |
+| `SUPER_ADMIN_EMAIL` | No | Auto-create admin on seed |
+| `SUPER_ADMIN_PASSWORD` | No | Admin password (default: Admin123!) |
+| `MAX_WHATSAPP_CLIENTS` | No | Max concurrent WhatsApp connections (default: 10) |
+| `MAX_TELEGRAM_BOTS` | No | Max concurrent Telegram bots (default: 20) |
+| `API_URL` | No | Public URL for Telegram webhooks (default: http://localhost:5000) |
+| `PORT` | No | Server port (default: 5000) |
 
-- Email: mostafa@rawash.com
-- Phone: +201099129550
-- WhatsApp: https://wa.me/201099129550
+### Frontend (`frontend/.env`)
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `REACT_APP_API_URL` | No | API URL (default: http://localhost:5000/api) |
+| `REACT_APP_SOCKET_URL` | No | Socket URL (default: http://localhost:5000) |
 
-## 📄 الرخصة
+## Deployment
 
-MIT License
+See `scripts/deploy.sh` for production deployment with PM2, nginx, and SSL.
+
+### Key Points
+- Build frontend: `cd frontend && npm run build`
+- Serve frontend with nginx (SPA routing: all routes → index.html)
+- Use PM2 for process management
+- Socket.io requires WebSocket support in nginx config
+- Each WhatsApp client uses ~150-200MB RAM
+
+## License
+
+MIT License — Mostafa Rawash (mostafa@rawash.com)

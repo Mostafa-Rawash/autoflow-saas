@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const User = require('../models/User');
+const autoReplyService = require('./autoReply.service');
 
 class WhatsAppService {
   constructor() {
@@ -42,6 +43,14 @@ class WhatsAppService {
     // Check if client already exists
     if (this.clients.has(userId)) {
       const status = this.userStatus.get(userId);
+      const qrData = this.userQRs.get(userId);
+      if (qrData) {
+        return {
+          status: 'qr_ready',
+          message: 'QR code already available',
+          qr: qrData.qr
+        };
+      }
       return {
         status: status || 'already_exists',
         message: 'Client already initialized'
@@ -58,6 +67,7 @@ class WhatsAppService {
       }),
       puppeteer: {
         headless: true,
+        executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -66,7 +76,7 @@ class WhatsAppService {
           '--no-first-run',
           '--no-zygote',
           '--disable-gpu',
-          '--single-process', // Important for multi-tenant
+          '--single-process',
           '--no-zygote'
         ]
       }
@@ -471,12 +481,46 @@ class WhatsAppService {
           conversationId: conversation._id,
           message: newMessage
         });
-        
+
         // Also emit to conversation room
         global.io.to(conversation._id.toString()).emit('new-message', {
           conversationId: conversation._id,
           message: newMessage
         });
+      }
+
+      // Auto-reply matching
+      if (message.body) {
+        const matchedRule = await autoReplyService.findMatch(userId, message.body);
+        if (matchedRule) {
+          try {
+            const client = this.clients.get(userId.toString()) || this.clients.get(userId);
+            if (client) {
+              await client.sendMessage(message.from, matchedRule.response);
+              const replyMessage = new Message({
+                conversation: conversation._id,
+                sender: 'bot',
+                content: matchedRule.response,
+                type: 'text',
+                metadata: {
+                  autoReplyRule: matchedRule._id,
+                  autoReplyName: matchedRule.name
+                }
+              });
+              await replyMessage.save();
+              conversation.lastMessage = { content: matchedRule.response, timestamp: new Date(), sender: 'bot' };
+              await conversation.save();
+              if (global.io) {
+                global.io.to(`user-${userId}`).emit('new-message', {
+                  conversationId: conversation._id,
+                  message: replyMessage
+                });
+              }
+            }
+          } catch (err) {
+            console.error('Error sending WhatsApp auto-reply:', err.message);
+          }
+        }
       }
 
     } catch (error) {

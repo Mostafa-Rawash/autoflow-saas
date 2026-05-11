@@ -3,6 +3,7 @@ import { Check, X, Crown, Star, Lock } from 'lucide-react';
 import { subscriptionsAPI } from '../api';
 import useAuthStore from '../store/authStore';
 import toast from 'react-hot-toast';
+import { useTheme } from '../context/ThemeContext';
 
 const plans = [
   {
@@ -60,6 +61,7 @@ const plans = [
 ];
 
 const Subscription = () => {
+  const theme = useTheme();
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [currentPlan, setCurrentPlan] = useState('starter');
   const [loading, setLoading] = useState(true);
@@ -99,7 +101,7 @@ const Subscription = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sky-600"></div>
       </div>
     );
   }
@@ -109,10 +111,10 @@ const Subscription = () => {
       {/* Header */}
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-2">خطط الاشتراك</h1>
-        <p className="text-gray-400">اختر الخطة المناسبة لاحتياجاتك</p>
+        <p className={`text-slate-600 ${theme === 'light' ? '' : 'text-slate-400'}`}>اختر الخطة المناسبة لاحتياجاتك</p>
         
         {/* WhatsApp Focus Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-whatsapp/20 text-whatsapp text-sm font-bold mt-4">
+        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mt-4 ${theme === 'light' ? 'bg-sky-50 text-sky-700' : 'bg-sky-500/20 text-sky-400'}`}>
           📱 ابدأ بواتس آب من 2000 جنيه/شهر
         </div>
       </div>
@@ -123,8 +125,8 @@ const Subscription = () => {
           onClick={() => setBillingCycle('monthly')}
           className={`px-6 py-2 rounded-lg transition-colors ${
             billingCycle === 'monthly'
-              ? 'bg-primary-500 text-white'
-              : 'bg-dark-800 text-gray-400 hover:bg-dark-700'
+              ? 'bg-sky-600 text-white'
+              : (theme === 'light' ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-dark-700 text-slate-300 hover:bg-dark-600')
           }`}
         >
           شهري
@@ -133,12 +135,12 @@ const Subscription = () => {
           onClick={() => setBillingCycle('yearly')}
           className={`px-6 py-2 rounded-lg transition-colors ${
             billingCycle === 'yearly'
-              ? 'bg-primary-500 text-white'
-              : 'bg-dark-800 text-gray-400 hover:bg-dark-700'
+              ? 'bg-sky-600 text-white'
+              : (theme === 'light' ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-dark-700 text-slate-300 hover:bg-dark-600')
           }`}
         >
           سنوي
-          <span className="mr-2 text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
+          <span className={`mr-2 text-xs px-2 py-0.5 rounded-full ${theme === 'light' ? 'bg-emerald-50 text-emerald-700' : 'bg-emerald-500/20 text-emerald-400'}`}>
             وفر شهرين
           </span>
         </button>
@@ -155,12 +157,12 @@ const Subscription = () => {
             <div
               key={plan.id}
               className={`card p-6 relative ${
-                plan.popular ? 'border-whatsapp border-2' : ''
-              } ${isCurrentPlan ? 'ring-2 ring-primary-500' : ''}`}
+                plan.popular ? 'border-sky-300 border-2' : ''
+              } ${isCurrentPlan ? 'ring-2 ring-sky-500' : ''}`}
             >
               {/* Popular Badge */}
               {plan.popular && (
-                <div className="absolute -top-3 right-1/2 translate-x-1/2 bg-whatsapp text-white text-xs px-3 py-1 rounded-full flex items-center gap-1">
+                <div className="absolute -top-3 right-1/2 translate-x-1/2 bg-sky-600 text-white text-xs px-3 py-1 rounded-full flex items-center gap-1">
                   <Star className="w-3 h-3" />
                   الأكثر شعبية
                 </div>
@@ -176,18 +178,18 @@ const Subscription = () => {
               {/* Plan Header */}
               <div className="text-center mb-6">
                 <h3 className="text-xl font-bold">{plan.name}</h3>
-                <p className="text-xs text-gray-500">{plan.nameEn}</p>
+                <p className={`text-xs ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>{plan.nameEn}</p>
                 
                 <div className="mt-4">
                   <div className="flex items-center justify-center gap-1">
                     <span className="text-4xl font-black">{price.toLocaleString()}</span>
-                    <span className="text-lg text-gray-400">جنيهاً</span>
+                    <span className={`text-lg ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>جنيهاً</span>
                   </div>
-                  <p className="text-sm text-gray-400">
+                  <p className={`text-sm ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
                     / {billingCycle === 'yearly' ? 'سنوياً' : 'شهرياً'}
                   </p>
                   {savings > 0 && (
-                    <p className="text-xs text-green-400 mt-1">
+                    <p className="text-xs text-emerald-600 mt-1">
                       توفير {savings.toLocaleString()} جنيه
                     </p>
                   )}
@@ -199,11 +201,11 @@ const Subscription = () => {
                 {plan.features.map((feature, index) => (
                   <li key={index} className="flex items-center gap-2 text-sm">
                     {feature.included ? (
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                     ) : (
-                      <X className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                      <X className="w-4 h-4 text-slate-400 flex-shrink-0" />
                     )}
-                    <span className={feature.included ? 'text-gray-300' : 'text-gray-600'}>
+                    <span className={feature.included ? (theme === 'light' ? 'text-slate-700' : 'text-slate-300') : 'text-slate-400'}>
                       {feature.text}
                     </span>
                   </li>
@@ -216,9 +218,9 @@ const Subscription = () => {
                 disabled={isCurrentPlan}
                 className={`w-full py-3 rounded-lg font-semibold transition-colors ${
                   isCurrentPlan
-                    ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                    ? (theme === 'light' ? 'bg-slate-200 text-slate-600 cursor-not-allowed' : 'bg-dark-700 text-slate-400 cursor-not-allowed')
                     : plan.popular
-                    ? 'bg-whatsapp hover:bg-whatsapp/90 text-white'
+                    ? 'bg-sky-600 hover:bg-sky-700 text-white'
                     : 'btn-secondary'
                 }`}
               >
@@ -233,21 +235,21 @@ const Subscription = () => {
       <div className="card p-6">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="font-bold">لماذا تختار AutoFlow؟</h3>
-          <span className="px-2 py-1 bg-whatsapp/20 text-whatsapp text-xs rounded-full">
+          <span className={`px-2 py-1 text-xs rounded-full ${theme === 'light' ? 'bg-sky-50 text-sky-700' : 'bg-sky-500/20 text-sky-400'}`}>
             واتس آب أولاً
           </span>
         </div>
-        <div className="grid md:grid-cols-3 gap-4 text-sm text-gray-400">
-          <div className="p-4 bg-dark-800 rounded-lg">
-            <p className="text-white font-semibold mb-2">📱 توصيل سريع</p>
+        <div className={`grid md:grid-cols-3 gap-4 text-sm ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
+          <div className={`p-4 rounded-xl border ${theme === 'light' ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-dark-800 border-dark-600 text-slate-300'}`}>
+            <p className={`font-semibold mb-2 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>📱 توصيل سريع</p>
             <p>وصّل واتس آب في دقائق عبر QR أو API</p>
           </div>
-          <div className="p-4 bg-dark-800 rounded-lg">
-            <p className="text-white font-semibold mb-2">🤖 ردود ذكية</p>
+          <div className={`p-4 rounded-xl border ${theme === 'light' ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-dark-800 border-dark-600 text-slate-300'}`}>
+            <p className={`font-semibold mb-2 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>🤖 ردود ذكية</p>
             <p>ردود تلقائية بالعربي مع دعم AI</p>
           </div>
-          <div className="p-4 bg-dark-800 rounded-lg">
-            <p className="text-white font-semibold mb-2">🔒 آمن وموثوق</p>
+          <div className={`p-4 rounded-xl border ${theme === 'light' ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-dark-800 border-dark-600 text-slate-300'}`}>
+            <p className={`font-semibold mb-2 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>🔒 آمن وموثوق</p>
             <p>تشفير كامل لحماية بيانات عملائك</p>
           </div>
         </div>
@@ -255,22 +257,22 @@ const Subscription = () => {
 
       {/* FAQ */}
       <div className="card p-6">
-        <h3 className="font-bold mb-4">أسئلة شائعة</h3>
-        <div className="space-y-4 text-sm text-gray-400">
+        <h3 className={`font-bold mb-4 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>أسئلة شائعة</h3>
+        <div className={`space-y-4 text-sm ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
           <div>
-            <p className="font-semibold text-white">هل يمكنني تغيير الخطة لاحقاً؟</p>
+            <p className={`font-semibold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>هل يمكنني تغيير الخطة لاحقاً؟</p>
             <p>نعم، يمكنك الترقية أو الإلغاء في أي وقت من إعدادات الحساب.</p>
           </div>
           <div>
-            <p className="font-semibold text-white">ما هي طرق الدفع المتاحة؟</p>
+            <p className={`font-semibold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>ما هي طرق الدفع المتاحة؟</p>
             <p>بطاقات الائتمان، فودافون كاش، فوري، التحويل البنكي.</p>
           </div>
           <div>
-            <p className="font-semibold text-white">هل هناك فترة تجريبية؟</p>
+            <p className={`font-semibold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>هل هناك فترة تجريبية؟</p>
             <p>نعم، جميع الخطط الجديدة تحصل على 14 يوم تجربة مجانية.</p>
           </div>
           <div>
-            <p className="font-semibold text-white">ما هي القنوات المتاحة؟</p>
+            <p className={`font-semibold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>ما هي القنوات المتاحة؟</p>
             <p>حالياً واتس آب فقط. قنوات أخرى (ماسنجر، إنستجرام، تيليجرام) قريباً!</p>
           </div>
         </div>

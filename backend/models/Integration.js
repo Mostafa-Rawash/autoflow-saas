@@ -29,6 +29,8 @@ const IntegrationSchema = new mongoose.Schema({
     
     // Telegram
     botToken: String,
+    botUsername: String,
+    botName: String,
     
     // Email (SMTP)
     smtpHost: String,
@@ -66,6 +68,7 @@ const IntegrationSchema = new mongoose.Schema({
     enum: ['pending', 'connected', 'disconnected', 'error'],
     default: 'pending'
   },
+  connectedAt: Date,
   lastSync: Date,
   error: String,
   createdAt: {

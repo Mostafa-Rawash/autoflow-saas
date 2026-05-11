@@ -218,17 +218,36 @@ exports.refreshToken = async (req, res, next) => {
 };
 
 /**
+ * Role hierarchy levels for authorization
+ * Higher number = more privileges
+ */
+const ROLE_LEVELS = {
+  owner: 100,
+  admin: 80,
+  manager: 60,
+  agent: 40,
+  viewer: 20
+};
+
+/**
  * Middleware factory to authorize specific roles
- * @param {...string} roles - Allowed roles
+ * Supports both exact role match and minimum role level:
+ * - authorize('admin') matches admin, owner (higher roles)
+ * - authorize('admin', 'manager') matches admin, owner, manager
+ *
+ * @param {...string} roles - Allowed roles (includes any role with higher level)
  * @returns {import('express').RequestHandler} Express middleware
- * 
+ *
  * @example
  * router.delete('/user/:id', auth, authorize('admin'), deleteUser);
  */
 exports.authorize = (...roles) => {
   return async (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ 
+    const userLevel = ROLE_LEVELS[req.user.role] || 0;
+    const minRequiredLevel = Math.min(...roles.map(r => ROLE_LEVELS[r] || 0));
+
+    if (userLevel < minRequiredLevel) {
+      return res.status(403).json({
         success: false,
         error: `User role '${req.user.role}' is not authorized to access this route`,
         code: 'FORBIDDEN_ROLE'
@@ -462,3 +481,4 @@ exports.generateTokens = generateTokens;
 exports.verifyToken = verifyToken;
 exports.TOKEN_TYPES = TOKEN_TYPES;
 exports.TOKEN_EXPIRY = TOKEN_EXPIRY;
+exports.ROLE_LEVELS = ROLE_LEVELS;

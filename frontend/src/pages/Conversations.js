@@ -1,70 +1,60 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Filter, Phone, Mail, Clock, RefreshCw, MessageSquare } from 'lucide-react';
-import { conversationsAPI } from '../api';
-import toast from 'react-hot-toast';
+import { Search, Filter, Clock } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+
+const mockConversations = [
+  {
+    id: '1',
+    contact: { name: 'أحمد محمد', phone: '+201012345678' },
+    channel: 'whatsapp',
+    lastMessage: 'مرحباً، عايز أعرف أسعار الباقات الجديدة',
+    lastMessageTime: '2026-04-04T14:30:00Z',
+    status: 'active',
+    unread: 2
+  },
+  {
+    id: '2',
+    contact: { name: 'سارة علي', phone: '+201098765432' },
+    channel: 'whatsapp',
+    lastMessage: 'شكراً على المساعدة السريعة! 🙏',
+    lastMessageTime: '2026-04-04T13:45:00Z',
+    status: 'resolved',
+    unread: 0
+  },
+  {
+    id: '3',
+    contact: { name: 'محمد خالد', phone: '+201112223334' },
+    channel: 'whatsapp',
+    lastMessage: 'هل عندكم فرع في الإسكندرية؟',
+    lastMessageTime: '2026-04-04T12:20:00Z',
+    status: 'pending',
+    unread: 1
+  },
+  {
+    id: '4',
+    contact: { name: 'فاطمة أحمد', phone: '+201223334445' },
+    channel: 'whatsapp',
+    lastMessage: 'عايز أطلب حجز للعيادة بكرة',
+    lastMessageTime: '2026-04-04T11:00:00Z',
+    status: 'active',
+    unread: 3
+  }
+];
 
 const Conversations = () => {
-  const [conversations, setConversations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [pagination, setPagination] = useState({ page: 1, total: 0, pages: 0 });
 
-  useEffect(() => {
-    fetchConversations();
-  }, [statusFilter]);
-
-  const fetchConversations = async (page = 1) => {
-    setLoading(true);
-    try {
-      const params = {
-        page,
-        limit: 20,
-        status: statusFilter !== 'all' ? statusFilter : undefined,
-        search: searchQuery || undefined
-      };
-      
-      const { data } = await conversationsAPI.getAll(params);
-      setConversations(data.conversations || []);
-      setPagination(data.pagination || { page: 1, total: 0, pages: 0 });
-    } catch (error) {
-      console.error('Error fetching conversations:', error);
-      toast.error('فشل في تحميل المحادثات');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchConversations(1);
-  };
-
-  const channelColors = {
-    whatsapp: '#25D366',
-    messenger: '#0084FF',
-    instagram: '#E4405F',
-    telegram: '#0088cc',
-    livechat: '#00D4AA',
-    email: '#EA4335',
-    sms: '#7C3AED',
-    api: '#F59E0B'
-  };
-
-  const channelIcons = {
-    whatsapp: '📱',
-    messenger: '💬',
-    instagram: '📷',
-    telegram: '✈️',
-    livechat: '🖥️',
-    email: '📧',
-    sms: '📱',
-    api: '🔗'
-  };
+  const filteredConversations = mockConversations.filter(conv => {
+    const matchesSearch = conv.contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || conv.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const formatTime = (dateString) => {
-    if (!dateString) return 'غير محدد';
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now - date;
@@ -79,172 +69,85 @@ const Conversations = () => {
     return date.toLocaleDateString('ar-EG');
   };
 
-  const activeCount = conversations.filter(c => c.status === 'active').length;
-
-  if (loading && conversations.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">المحادثات</h1>
-          <p className="text-gray-400 mt-1">إدارة جميع محادثاتك في مكان واحد</p>
+          <h1 className={`text-2xl font-bold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>المحادثات</h1>
+          <p className={`mt-1 ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>إدارة محادثات واتس آب فقط في مكان واحد</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="status-active px-3 py-1 text-sm">
-            {activeCount} نشطة
-          </span>
-          <button
-            onClick={() => fetchConversations(pagination.page)}
-            className="btn-secondary flex items-center gap-2"
-          >
-            <RefreshCw className="w-4 h-4" />
-            تحديث
-          </button>
-          <Link to="/channels" className="btn-primary">
-            + توصيل قناة
-          </Link>
+          <span className={`px-3 py-1 text-sm ${theme === 'light' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}`}>{mockConversations.filter(c => c.status === 'active').length} نشطة</span>
+          <Link to="/channels" className="btn-primary">+ توصيل واتس آب</Link>
         </div>
       </div>
 
-      {/* Search & Filter */}
-      <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
+      <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+          <Search className={`absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`} />
           <input
             type="text"
             placeholder="ابحث في المحادثات..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-dark-800 border border-dark-600 rounded-lg py-3 pr-10 pl-4 focus:border-primary-500 outline-none transition"
+            className={`w-full rounded-lg py-3 pr-10 pl-4 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition ${theme === 'light' ? 'bg-slate-100 border border-slate-300' : 'bg-slate-800 border border-slate-700 text-white'}`}
           />
         </div>
         <div className="flex items-center gap-2">
-          <Filter className="w-5 h-5 text-gray-500" />
+          <Filter className={`w-5 h-5 ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`} />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-dark-800 border border-dark-600 rounded-lg py-3 px-4 focus:border-primary-500 outline-none"
+            className={`rounded-lg py-3 px-4 focus:border-sky-500 outline-none ${theme === 'light' ? 'bg-slate-100 border border-slate-300' : 'bg-slate-800 border border-slate-700 text-white'}`}
           >
             <option value="all">جميع الحالات</option>
             <option value="active">نشطة</option>
             <option value="pending">معلقة</option>
             <option value="resolved">محلولة</option>
           </select>
-          <button type="submit" className="btn-secondary">
-            بحث
-          </button>
         </div>
-      </form>
+      </div>
 
-      {/* Conversations List */}
-      {conversations.length > 0 ? (
-        <div className="space-y-3">
-          {conversations.map((conv) => (
-            <Link
-              key={conv._id}
-              to={`/conversations/${conv._id}`}
-              className="card p-4 hover:border-primary-500/30 transition-colors block"
-            >
-              <div className="flex items-center gap-4">
-                {/* Avatar */}
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold flex-shrink-0"
-                  style={{ background: `${channelColors[conv.channel] || '#00D4AA'}20` }}
-                >
-                  {conv.contact?.name?.charAt(0) || conv.contact?.phone?.slice(-2) || '؟'}
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-bold truncate">
-                      {conv.contact?.name || conv.contact?.phone || 'مستخدم غير معروف'}
-                    </h3>
-                    <span className="text-xs text-gray-500 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {formatTime(conv.lastMessage?.timestamp || conv.updatedAt)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className="text-sm flex items-center gap-1"
-                      style={{ color: channelColors[conv.channel] || '#00D4AA' }}
-                    >
-                      {channelIcons[conv.channel] || '📱'} {conv.channel}
-                    </span>
-                    {conv.contact?.phone && (
-                      <>
-                        <span className="text-gray-500">•</span>
-                        <span className="text-sm text-gray-500">{conv.contact.phone}</span>
-                      </>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-400 truncate">
-                    {conv.lastMessage?.content || 'لا توجد رسائل'}
-                  </p>
-                </div>
-
-                {/* Status & Unread */}
-                <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                  <span className={`inline-block px-3 py-1 rounded-full text-xs ${
-                    conv.status === 'active' ? 'status-active' :
-                    conv.status === 'pending' ? 'status-pending' : 'status-resolved'
-                  }`}>
-                    {conv.status === 'active' ? 'نشط' :
-                     conv.status === 'pending' ? 'معلق' : 'محلول'}
+      <div className="space-y-3">
+        {filteredConversations.map((conv) => (
+          <Link key={conv.id} to={`/conversations/${conv.id}`} className={`card p-4 transition-colors block ${theme === 'light' ? 'hover:border-sky-300' : 'hover:border-sky-600'}`}>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold flex-shrink-0 bg-emerald-50">📱</div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className={`font-bold truncate ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>{conv.contact.name}</h3>
+                  <span className={`text-xs flex items-center gap-1 ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                    <Clock className="w-3 h-3" />
+                    {formatTime(conv.lastMessageTime)}
                   </span>
-                  {conv.unreadCount > 0 && (
-                    <span className="bg-primary-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">
-                      {conv.unreadCount}
-                    </span>
-                  )}
                 </div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`text-sm flex items-center gap-1 ${theme === 'light' ? 'text-sky-700' : 'text-sky-400'}`}>📱 whatsapp</span>
+                  <span className={theme === 'light' ? 'text-slate-500' : 'text-slate-400'}>•</span>
+                  <span className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>{conv.contact.phone}</span>
+                </div>
+                <p className={`text-sm truncate ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>{conv.lastMessage}</p>
               </div>
-            </Link>
-          ))}
-
-          {/* Pagination */}
-          {pagination.pages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-6">
-              <button
-                onClick={() => fetchConversations(pagination.page - 1)}
-                disabled={pagination.page === 1}
-                className="btn-secondary disabled:opacity-50"
-              >
-                السابق
-              </button>
-              <span className="text-gray-500">
-                صفحة {pagination.page} من {pagination.pages}
-              </span>
-              <button
-                onClick={() => fetchConversations(pagination.page + 1)}
-                disabled={pagination.page === pagination.pages}
-                className="btn-secondary disabled:opacity-50"
-              >
-                التالي
-              </button>
+              <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                <span className={`inline-block px-3 py-1 rounded-full text-xs ${conv.status === 'active' ? (theme === 'light' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-emerald-500/20 text-emerald-400') : conv.status === 'pending' ? (theme === 'light' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-amber-500/20 text-amber-400') : (theme === 'light' ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-sky-500/20 text-sky-400')}`}>
+                  {conv.status === 'active' ? 'نشط' : conv.status === 'pending' ? 'معلق' : 'محلول'}
+                </span>
+                {conv.unread > 0 && (
+                  <span className="bg-sky-600 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">
+                    {conv.unread}
+                  </span>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-      ) : (
-        <div className="card p-8 text-center">
-          <div className="text-6xl mb-4">💬</div>
-          <h2 className="text-xl font-bold mb-2">لا توجد محادثات</h2>
-          <p className="text-gray-400 mb-4">
-            ابدأ بتوصيل قناة للتواصل مع عملائك
-          </p>
-          <Link to="/channels" className="btn-primary inline-flex items-center gap-2">
-            <MessageSquare className="w-5 h-5" />
-            توصيل قناة
           </Link>
+        ))}
+      </div>
+
+      {filteredConversations.length === 0 && (
+        <div className="card p-8 text-center">
+          <div className="text-6xl mb-4">🔍</div>
+          <h2 className={`text-xl font-bold mb-2 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>لا توجد نتائج</h2>
+          <p className={theme === 'light' ? 'text-slate-500' : 'text-slate-400'}>جرب تغيير البحث أو الفلتر</p>
         </div>
       )}
     </div>

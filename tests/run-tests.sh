@@ -53,7 +53,7 @@ run_api_tests() {
 run_frontend_tests() {
     echo -e "\n${YELLOW}Running Frontend Tests...${NC}\n"
     
-    cd frontend/frontend
+    cd frontend
     
     # Run Jest tests
     npm test -- --passWithNoTests --watchAll=false 2>/dev/null || true
@@ -133,7 +133,7 @@ run_linting() {
     
     # Frontend linting
     echo "Linting Frontend..."
-    cd frontend/frontend
+    cd frontend
     if command -v eslint &> /dev/null; then
         eslint src/ --fix 2>/dev/null || true
     fi

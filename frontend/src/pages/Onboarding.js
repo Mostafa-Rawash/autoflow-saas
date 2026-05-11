@@ -1,337 +1,292 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ArrowRight, MessageSquare, Users, Crown, Zap } from 'lucide-react';
-import { usersAPI } from '../api';
-import useAuthStore from '../store/authStore';
+import { Check, ChevronLeft, Smartphone, Zap, Users, Crown, MessageSquare, ArrowRight } from 'lucide-react';
+import axios from 'axios';
 import toast from 'react-hot-toast';
+import useAuthStore from '../store/authStore';
+
+const getTheme = () => localStorage.getItem('autoflow_theme') || 'light';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+const steps = [
+  { id: 1, title: 'مرحباً بك في AutoFlow', subtitle: 'نورتنا! خلينا نعرفك على النظام', icon: '👋' },
+  { id: 2, title: 'نوع النشاط', subtitle: 'اختار نوع نشاطك التجاري', icon: '🏢' },
+  { id: 3, title: 'توصيل واتس آب', subtitle: 'اربط حساب واتس آب بتاعك', icon: '📱' },
+  { id: 4, title: 'أول رد تلقائي', subtitle: 'جهز أول رد تلقائي لعملائك', icon: '⚡' },
+  { id: 5, title: 'جاهز!', subtitle: 'كل حاجة اتصححت، يلا نبدأ', icon: '🎉' }
+];
+
+const businessTypes = [
+  { id: 'restaurant', name: 'مطعم / كافيه', icon: '🍽️' },
+  { id: 'clinic', name: 'عيادة / مستشفى', icon: '🏥' },
+  { id: 'ecommerce', name: 'متجر إلكتروني', icon: '🛍️' },
+  { id: 'realestate', name: 'عقارات', icon: '🏠' },
+  { id: 'services', name: 'خدمات مهنية', icon: '🔧' },
+  { id: 'retail', name: 'متجر تجاري', icon: '🏪' },
+  { id: 'education', name: 'تعليم / تدريب', icon: '📚' },
+  { id: 'other', name: 'نشاط آخر', icon: '💼' }
+];
+
+const quickReplies = [
+  { name: 'مرحباً', keywords: 'مرحبا، السلام عليكم، hi', response: 'أهلاً بك في [اسم النشاط]! كيف يمكنني مساعدتك؟' },
+  { name: 'ساعات العمل', keywords: 'ساعات، مواعيد، امتى', response: 'ساعات العمل: من 9 صباحاً إلى 10 مساءً كل يوم.' },
+  { name: 'أسعار', keywords: 'سعر، أسعار، كام', response: 'للأسعار والعروض، تواصل معنا على 01099129550' }
+];
 
 const Onboarding = () => {
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [profileData, setProfileData] = useState({
-    name: '',
-    phone: '',
-    language: 'ar',
-    timezone: 'Africa/Cairo'
-  });
   const navigate = useNavigate();
-  const { user, updateUser } = useAuthStore();
+  const theme = getTheme();
+  const { user, token } = useAuthStore();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    businessType: '',
+    businessName: user?.name || '',
+    whatsappConnected: false,
+    quickReplies: []
+  });
 
-  const steps = [
-    { id: 1, title: 'مرحباً!', subtitle: 'هيّئ حسابك في دقائق' },
-    { id: 2, title: 'معلوماتك', subtitle: 'أخبرنا المزيد عنك' },
-    { id: 3, title: 'اختر خطتك', subtitle: 'ابدأ مجاناً أو اختر خطة مناسبة' },
-    { id: 4, title: 'توصيل واتس آب', subtitle: 'ابدأ التواصل مع عملائك' }
-  ];
+  useEffect(() => {
+    // Check if already onboarded
+    const onboarded = localStorage.getItem('autoflow_onboarded');
+    if (onboarded === 'true') {
+      navigate('/');
+    }
+  }, [navigate]);
 
-  const handleProfileChange = (e) => {
-    const { name, value } = e.target;
-    setProfileData(prev => ({ ...prev, [name]: value }));
+  const handleNext = () => {
+    if (currentStep < steps.length) {
+      setCurrentStep(currentStep + 1);
+    }
   };
 
-  const handleSaveProfile = async () => {
+  const handlePrev = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleBusinessSelect = (type) => {
+    setFormData({ ...formData, businessType: type });
+  };
+
+  const handleQuickReplyToggle = (reply) => {
+    const current = formData.quickReplies;
+    const exists = current.find(r => r.name === reply.name);
+    if (exists) {
+      setFormData({ ...formData, quickReplies: current.filter(r => r.name !== reply.name) });
+    } else {
+      setFormData({ ...formData, quickReplies: [...current, reply] });
+    }
+  };
+
+  const handleComplete = async () => {
     setLoading(true);
     try {
-      await usersAPI.update(user.id, {
-        name: profileData.name || user.name,
-        phone: profileData.phone,
-        settings: {
-          language: profileData.language,
-          timezone: profileData.timezone
+      // Save quick replies
+      if (formData.quickReplies.length > 0) {
+        for (const reply of formData.quickReplies) {
+          await axios.post(`${API_URL}/auto-replies`, {
+            name: reply.name,
+            keywords: reply.keywords.split(', '),
+            response: reply.response,
+            matchType: 'contains',
+            isActive: true
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
         }
-      });
+      }
       
-      updateUser({
-        name: profileData.name || user.name,
-        phone: profileData.phone,
-        settings: {
-          language: profileData.language,
-          timezone: profileData.timezone
-        }
-      });
+      // Mark as onboarded
+      localStorage.setItem('autoflow_onboarded', 'true');
+      localStorage.setItem('autoflow_business_type', formData.businessType);
       
-      setStep(3);
+      toast.success('تم الإعداد بنجاح! مرحباً بك في AutoFlow');
+      navigate('/');
     } catch (error) {
-      toast.error('فشل في حفظ البيانات');
+      console.error('Onboarding error:', error);
+      localStorage.setItem('autoflow_onboarded', 'true');
+      navigate('/');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSkipToWhatsApp = () => {
-    navigate('/channels');
-  };
-
-  const handleComplete = () => {
-    navigate('/');
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="text-center">
+            <div className="text-6xl mb-6">👋</div>
+            <h2 className={`text-2xl md:text-3xl font-bold mb-4 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>{steps[0].title}</h2>
+            <p className={`text-xl mb-8 ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>{steps[0].subtitle}</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto mb-8">
+              {['📱 واتس آب', '🤖 ردود تلقائية', '📊 تقارير', '👥 فريق'].map((feature, i) => (
+                <div key={i} className="card p-4 text-center">
+                  <p className="font-medium">{feature}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      
+      case 2:
+        return (
+          <div>
+            <h2 className={`text-3xl font-bold mb-4 text-center ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>{steps[1].title}</h2>
+            <p className={`text-xl mb-8 text-center ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>{steps[1].subtitle}</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {businessTypes.map((type) => (
+                <button
+                  key={type.id}
+                  onClick={() => handleBusinessSelect(type.id)}
+                  className={`card p-6 text-center transition-all ${formData.businessType === type.id ? 'border-2 border-sky-300 bg-sky-600/10' : (theme === 'light' ? 'hover:border-sky-300/30' : 'hover:border-sky-300/30')}`}
+                >
+                  <div className="text-4xl mb-3">{type.icon}</div>
+                  <p className="font-medium">{type.name}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      
+      case 3:
+        return (
+          <div className="text-center">
+            <div className="text-6xl mb-6">📱</div>
+            <h2 className={`text-2xl md:text-3xl font-bold mb-4 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>{steps[2].title}</h2>
+            <p className={`text-xl mb-8 ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>{steps[2].subtitle}</p>
+            <div className="max-w-md mx-auto">
+              <div className={`rounded-2xl border p-6 mb-6 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-dark-600 bg-dark-800'}`}>
+                <div className="flex items-center justify-center mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-whatsapp/20 flex items-center justify-center">
+                    <Smartphone className="w-8 h-8 text-whatsapp" />
+                  </div>
+                </div>
+                <p className={`mb-4 ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>واتس آب هو القناة الوحيدة النشطة حالياً في AutoFlow</p>
+                <button
+                  onClick={() => setFormData({ ...formData, whatsappConnected: true })}
+                  className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-semibold w-full ${theme === 'light' ? 'bg-white text-slate-900' : 'bg-slate-900 text-white'}`}
+                  style={{ background: '#25D366' }}
+                >
+                  توصيل واتس آب
+                </button>
+                {formData.whatsappConnected && (
+                  <div className="mt-4 flex items-center justify-center gap-2 text-emerald-600">
+                    <Check className="w-5 h-5" /> متصل في وضع العرض
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      
+      case 4:
+        return (
+          <div>
+            <h2 className={`text-3xl font-bold mb-4 text-center ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>{steps[3].title}</h2>
+            <p className={`text-xl mb-8 text-center ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>{steps[3].subtitle}</p>
+            <div className="grid md:grid-cols-3 gap-4 max-w-3xl mx-auto">
+              {quickReplies.map((reply) => {
+                const selected = formData.quickReplies.find(r => r.name === reply.name);
+                return (
+                  <button
+                    key={reply.name}
+                    onClick={() => handleQuickReplyToggle(reply)}
+                    className={`card p-6 text-right transition-all ${selected ? 'border-2 border-whatsapp bg-whatsapp/10' : 'hover:border-whatsapp/30'}`}
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <Zap className={`w-5 h-5 ${selected ? 'text-whatsapp' : (theme === 'light' ? 'text-slate-400' : 'text-slate-500')}`} />
+                      <h3 className={`font-bold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>{reply.name}</h3>
+                    </div>
+                    <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>{reply.response.substring(0, 50)}...</p>
+                    {selected && <div className="mt-3 flex items-center gap-1 text-whatsapp text-sm"><Check className="w-4 h-4" /> مضاف</div>}
+                  </button>
+                );
+              })}
+            </div>
+            <p className={`text-center text-sm mt-4 ${theme === 'light' ? 'text-slate-400' : 'text-slate-500'}`}>تقدر تعدل أو تضيف قواعد تانية من لوحة التحكم بعدين</p>
+          </div>
+        );
+      
+      case 5:
+        return (
+          <div className="text-center">
+            <div className="text-6xl mb-6">🎉</div>
+            <h2 className={`text-2xl md:text-3xl font-bold mb-4 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>{steps[4].title}</h2>
+            <p className={`text-xl mb-8 ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>{steps[4].subtitle}</p>
+            <div className="max-w-md mx-auto mb-8">
+              <div className={`rounded-2xl border p-5 text-right space-y-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-dark-600 bg-dark-800'}`}>
+                <div className="flex items-center justify-between">
+                  <Check className="w-5 h-5 text-emerald-600" />
+                  <span className={theme === 'light' ? 'text-slate-700' : 'text-slate-300'}>نوع النشاط: {businessTypes.find(t => t.id === formData.businessType)?.name || '—'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <Check className="w-5 h-5 text-emerald-600" />
+                  <span className={theme === 'light' ? 'text-slate-700' : 'text-slate-300'}>واتس آب: متصل</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <Check className="w-5 h-5 text-emerald-600" />
+                  <span className={theme === 'light' ? 'text-slate-700' : 'text-slate-300'}>الردود التلقائية: {formData.quickReplies.length} مفعلين</span>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleComplete}
+              disabled={loading}
+              className="btn-primary px-10 py-4 text-xl font-bold"
+            >
+              {loading ? 'جاري الإعداد...' : 'ابدأ الآن 🚀'}
+            </button>
+          </div>
+        );
+      
+      default:
+        return null;
+    }
   };
 
   return (
-    <div className="min-h-screen bg-dark-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
-        {/* Progress */}
-        <div className="flex items-center justify-center mb-8">
-          {steps.map((s, index) => (
-            <div key={s.id} className="flex items-center">
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                  step >= s.id
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-dark-700 text-gray-500'
-                }`}
-              >
-                {step > s.id ? <Check className="w-5 h-5" /> : s.id}
+    <div className={`min-h-screen flex items-center justify-center p-4 ${theme === 'light' ? 'bg-slate-50' : 'bg-dark-950'}`}>
+      <div className="w-full max-w-4xl">
+        {/* Progress bar */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            {steps.map((step, index) => (
+              <div key={step.id} className="flex items-center">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${currentStep >= step.id ? 'bg-sky-600 text-white' : (theme === 'light' ? 'bg-slate-100 text-slate-400' : 'bg-dark-700 text-slate-400')}`}>
+                  {step.id}
+                </div>
+                {index < steps.length - 1 && <div className={`w-12 md:w-24 h-1 mx-2 ${currentStep > step.id ? 'bg-sky-600' : (theme === 'light' ? 'bg-slate-100' : 'bg-dark-700')}`} />}
               </div>
-              {index < steps.length - 1 && (
-                <div
-                  className={`w-16 h-1 ${
-                    step > s.id ? 'bg-primary-500' : 'bg-dark-700'
-                  }`}
-                />
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {/* Step Content */}
-        <div className="card p-8">
-          {/* Step 1: Welcome */}
-          {step === 1 && (
-            <div className="text-center">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-whatsapp to-primary-500 flex items-center justify-center mx-auto mb-6">
-                <MessageSquare className="w-10 h-10 text-white" />
-              </div>
-              <h1 className="text-3xl font-bold mb-2">{steps[0].title}</h1>
-              <p className="text-gray-400 mb-8">{steps[0].subtitle}</p>
-              
-              <div className="grid md:grid-cols-3 gap-4 mb-8">
-                <div className="p-4 rounded-xl bg-dark-800 text-center">
-                  <Zap className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                  <h3 className="font-bold mb-1">سريع</h3>
-                  <p className="text-xs text-gray-500">توصيل في دقائق</p>
-                </div>
-                <div className="p-4 rounded-xl bg-dark-800 text-center">
-                  <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-                  <h3 className="font-bold mb-1">فريقك</h3>
-                  <p className="text-xs text-gray-500">إدارة متعددة المستخدمين</p>
-                </div>
-                <div className="p-4 rounded-xl bg-dark-800 text-center">
-                  <Crown className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-                  <h3 className="font-bold mb-1">مرونة</h3>
-                  <p className="text-xs text-gray-500">خطط تناسب احتياجك</p>
-                </div>
-              </div>
-              
-              <button
-                onClick={() => setStep(2)}
-                className="btn-primary inline-flex items-center gap-2"
-              >
-                ابدأ الآن
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
-          )}
-
-          {/* Step 2: Profile */}
-          {step === 2 && (
-            <div>
-              <h2 className="text-2xl font-bold mb-2">{steps[1].title}</h2>
-              <p className="text-gray-400 mb-6">{steps[1].subtitle}</p>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">الاسم</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={profileData.name}
-                    onChange={handleProfileChange}
-                    placeholder={user?.name || 'اسمك'}
-                    className="w-full bg-dark-800 border border-dark-600 rounded-lg py-3 px-4 focus:border-primary-500 focus:outline-none"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-2">رقم الهاتف</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={profileData.phone}
-                    onChange={handleProfileChange}
-                    placeholder="201099129550"
-                    className="w-full bg-dark-800 border border-dark-600 rounded-lg py-3 px-4 focus:border-primary-500 focus:outline-none"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">اللغة</label>
-                    <select
-                      name="language"
-                      value={profileData.language}
-                      onChange={handleProfileChange}
-                      className="w-full bg-dark-800 border border-dark-600 rounded-lg py-3 px-4 focus:border-primary-500 focus:outline-none"
-                    >
-                      <option value="ar">العربية</option>
-                      <option value="en">English</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">المنطقة الزمنية</label>
-                    <select
-                      name="timezone"
-                      value={profileData.timezone}
-                      onChange={handleProfileChange}
-                      className="w-full bg-dark-800 border border-dark-600 rounded-lg py-3 px-4 focus:border-primary-500 focus:outline-none"
-                    >
-                      <option value="Africa/Cairo">القاهرة</option>
-                      <option value="Asia/Riyadh">الرياض</option>
-                      <option value="Asia/Dubai">دبي</option>
-                      <option value="UTC">UTC</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex gap-4 mt-8">
-                <button
-                  onClick={() => setStep(1)}
-                  className="btn-secondary flex-1"
-                >
-                  السابق
-                </button>
-                <button
-                  onClick={handleSaveProfile}
-                  disabled={loading}
-                  className="btn-primary flex-1 flex items-center justify-center gap-2"
-                >
-                  {loading ? 'جاري الحفظ...' : 'التالي'}
-                  {!loading && <ArrowRight className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Plan Selection */}
-          {step === 3 && (
-            <div>
-              <h2 className="text-2xl font-bold mb-2">{steps[2].title}</h2>
-              <p className="text-gray-400 mb-6">{steps[2].subtitle}</p>
-              
-              <div className="grid gap-4 mb-6">
-                {/* Free Plan */}
-                <div
-                  className="p-4 rounded-xl border-2 border-primary-500 bg-primary-500/10 cursor-pointer"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-bold">ابدأ مجاناً</h3>
-                      <p className="text-sm text-gray-400">100 محادثة، 1000 رسالة</p>
-                    </div>
-                    <div className="text-2xl font-bold">EGP 0</div>
-                  </div>
-                </div>
-                
-                {/* Standard Plan */}
-                <div
-                  className="p-4 rounded-xl border border-dark-600 hover:border-primary-500/50 cursor-pointer relative"
-                >
-                  <span className="absolute -top-2 left-4 px-2 py-0.5 bg-whatsapp text-white text-xs rounded-full">
-                    الأكثر شعبية
-                  </span>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-bold">قياسي</h3>
-                      <p className="text-sm text-gray-400">5000 محادثة، 50000 رسالة</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">EGP 599</div>
-                      <div className="text-xs text-gray-500">شهرياً</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <p className="text-xs text-gray-500 mb-6 text-center">
-                يمكنك الترقية لاحقاً من إعدادات الاشتراك
-              </p>
-              
-              <div className="flex gap-4">
-                <button
-                  onClick={() => setStep(2)}
-                  className="btn-secondary flex-1"
-                >
-                  السابق
-                </button>
-                <button
-                  onClick={() => setStep(4)}
-                  className="btn-primary flex-1 flex items-center justify-center gap-2"
-                >
-                  المتابعة بالخطة المجانية
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: WhatsApp */}
-          {step === 4 && (
-            <div>
-              <h2 className="text-2xl font-bold mb-2">{steps[3].title}</h2>
-              <p className="text-gray-400 mb-6">{steps[3].subtitle}</p>
-              
-              <div className="bg-whatsapp/10 border border-whatsapp/30 rounded-xl p-6 mb-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-16 h-16 rounded-xl bg-whatsapp/20 flex items-center justify-center text-3xl">
-                    📱
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg">واتس آب</h3>
-                    <p className="text-sm text-gray-400">توصيل فوري عبر QR</p>
-                  </div>
-                </div>
-                
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-400" />
-                    <span>مجاني 100%</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-400" />
-                    <span>بدون API costs</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-400" />
-                    <span>تشفير من طرف لطرف</span>
-                  </li>
-                </ul>
-              </div>
-              
-              <div className="flex gap-4">
-                <button
-                  onClick={handleComplete}
-                  className="btn-secondary flex-1"
-                >
-                  تخطي الآن
-                </button>
-                <button
-                  onClick={handleSkipToWhatsApp}
-                  className="btn-primary flex-1 flex items-center justify-center gap-2 bg-whatsapp hover:bg-whatsapp/90"
-                >
-                  توصيل واتس آب
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          )}
+        {/* Content */}
+        <div className={`rounded-3xl shadow-sm p-6 md:p-8 ${theme === 'light' ? 'bg-white border border-slate-200' : 'bg-dark-900 border border-dark-700'}`}>
+          {renderStep()}
         </div>
 
-        {/* Skip link */}
-        <p className="text-center text-gray-500 text-sm mt-4">
-          <button onClick={handleComplete} className="hover:text-white">
-            تخطي الإعداد والذهاب للوحة التحكم
+        {/* Navigation */}
+        <div className="flex justify-between mt-8">
+          <button
+            onClick={handlePrev}
+            disabled={currentStep === 1}
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg ${currentStep === 1 ? 'opacity-0' : (theme === 'light' ? 'border border-slate-300 text-slate-700 hover:bg-slate-100' : 'border border-dark-600 text-slate-300 hover:bg-dark-700')}`}
+          >
+            <ArrowRight className="w-5 h-5" /> السابق
           </button>
-        </p>
+          {currentStep < steps.length && (
+            <button
+              onClick={handleNext}
+              className={`inline-flex items-center gap-2 rounded-xl px-5 py-3 font-semibold ${theme === 'light' ? 'bg-slate-900 text-white' : 'bg-sky-600 text-white'}`}
+            >
+              التالي <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

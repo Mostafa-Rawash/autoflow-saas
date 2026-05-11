@@ -20,8 +20,8 @@ BACKEND_PORT=5000
 FRONTEND_PORT=3000
 
 # Directories
-BACKEND_DIR="./frontend/backend"
-FRONTEND_DIR="./frontend/frontend"
+BACKEND_DIR="./backend"
+FRONTEND_DIR="./frontend"
 
 echo -e "${BLUE}AutoFlow Process Manager${NC}"
 echo "========================="

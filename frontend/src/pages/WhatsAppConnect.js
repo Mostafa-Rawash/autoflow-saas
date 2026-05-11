@@ -4,8 +4,10 @@ import { Check, X, Smartphone, RefreshCw, QrCode, Send, MessageSquare, Loader2 }
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
+import { useTheme } from '../context/ThemeContext';
 
 const WhatsAppConnect = () => {
+  const theme = useTheme();
   const [status, setStatus] = useState('not_initialized');
   const [qrCode, setQrCode] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -283,8 +285,8 @@ const WhatsAppConnect = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">واتس آب</h1>
-          <p className="text-gray-400 mt-1">تواصل مع عملائك عبر واتس آب</p>
+          <h1 className={`text-2xl font-bold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>واتس آب</h1>
+          <p className={`mt-1 ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>تواصل مع عملائك عبر واتس آب</p>
         </div>
         <div className="flex items-center gap-3">
           <div className={`px-4 py-2 rounded-full text-sm flex items-center gap-2 ${
@@ -303,7 +305,7 @@ const WhatsAppConnect = () => {
             {/* QR Code Display */}
             {qrCode ? (
               <div className="space-y-4">
-                <p className="text-gray-400 mb-4">امسح الكود بواتس آب على جوالك</p>
+                <p className={`mb-4 ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>امسح الكود بواتس آب على جوالك</p>
                 <div className="bg-white p-6 rounded-xl inline-block">
                   {/* Show QR as image */}
                   <img 
@@ -312,7 +314,7 @@ const WhatsAppConnect = () => {
                     className="w-64 h-64 mx-auto"
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-4">
+                <p className={`text-xs mt-4 ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>
                   WhatsApp ➜ Settings ➜ Linked Devices ➜ Link Device
                 </p>
                 <p className="text-xs text-[#25D366] mt-2">
@@ -321,23 +323,23 @@ const WhatsAppConnect = () => {
                 
                 {/* Debug: Show raw QR string */}
                 <details className="mt-4 text-left">
-                  <summary className="text-xs text-gray-500 cursor-pointer">عرض الكود الخام (للتطوير)</summary>
-                  <pre className="text-xs bg-dark-800 p-2 rounded mt-2 overflow-auto max-h-32">{qrCode}</pre>
+                  <summary className={`text-xs cursor-pointer ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>عرض الكود الخام (للتطوير)</summary>
+                  <pre className={`text-xs p-2 rounded mt-2 overflow-auto max-h-32 ${theme === 'light' ? 'bg-slate-100' : 'bg-dark-800'}`}>{qrCode}</pre>
                 </details>
               </div>
             ) : status === 'initializing' ? (
               <div className="flex flex-col items-center">
                 <Loader2 className="w-12 h-12 text-[#25D366] animate-spin mb-4" />
-                <p className="text-gray-400">جاري تهيئة الاتصال...</p>
-                <p className="text-xs text-gray-500 mt-2">قد يستغرق هذا بضع ثوانٍ</p>
+                <p className={`${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>جاري تهيئة الاتصال...</p>
+                <p className={`text-xs mt-2 ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>قد يستغرق هذا بضع ثوانٍ</p>
               </div>
             ) : (
               <>
                 <div className="w-24 h-24 rounded-full bg-[#25D366]/20 flex items-center justify-center mx-auto mb-4">
                   <Smartphone className="w-12 h-12 text-[#25D366]" />
                 </div>
-                <h2 className="text-xl font-bold mb-2">تواصل مع واتس آب</h2>
-                <p className="text-gray-400 mb-6">
+                <h2 className={`text-xl font-bold mb-2 ${theme === 'light' ? 'text-slate-900' : ''}`}>تواصل مع واتس آب</h2>
+                <p className={`mb-6 ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
                   اضغط على زر الاتصال وامسح كود QR بواتس آب على جوالك
                 </p>
                 <button
@@ -361,9 +363,9 @@ const WhatsAppConnect = () => {
             <div className="w-24 h-24 rounded-full bg-[#25D366]/20 flex items-center justify-center mx-auto mb-4">
               <Check className="w-12 h-12 text-[#25D366]" />
             </div>
-            <h2 className="text-xl font-bold mb-2">واتس آب متصل! 🎉</h2>
+            <h2 className={`text-xl font-bold mb-2 ${theme === 'light' ? 'text-slate-900' : ''}`}>واتس آب متصل! 🎉</h2>
             {userInfo && (
-              <p className="text-gray-400 mb-2">
+              <p className={`mb-2 ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
                 متصل كـ: <span className="text-[#25D366] font-medium">{userInfo.pushname}</span>
               </p>
             )}
@@ -403,7 +405,7 @@ const WhatsAppConnect = () => {
       {/* Quick Send (when connected) */}
       {connected && (
         <div className="card p-6">
-          <h3 className="font-bold mb-4">إرسال سريع</h3>
+          <h3 className={`font-bold mb-4 ${theme === 'light' ? 'text-slate-900' : ''}`}>إرسال سريع</h3>
           <form onSubmit={handleSendMessage} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">رقم الهاتف</label>
@@ -412,7 +414,7 @@ const WhatsAppConnect = () => {
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="201099129550"
-                className="w-full bg-dark-800 border border-dark-600 rounded-lg py-2 px-4 focus:border-[#25D366] focus:outline-none"
+                className={`w-full ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg py-2 px-4 focus:border-[#25D366] focus:outline-none`}
               />
             </div>
             <div>
@@ -422,7 +424,7 @@ const WhatsAppConnect = () => {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="اكتب رسالتك..."
                 rows={3}
-                className="w-full bg-dark-800 border border-dark-600 rounded-lg py-2 px-4 resize-none focus:border-[#25D366] focus:outline-none"
+                className={`w-full ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-800 border border-dark-600'} rounded-lg py-2 px-4 resize-none focus:border-[#25D366] focus:outline-none`}
               />
             </div>
             <button
@@ -440,20 +442,20 @@ const WhatsAppConnect = () => {
       {/* Chats List (when loaded) */}
       {chats.length > 0 && (
         <div className="card p-6">
-          <h3 className="font-bold mb-4">المحادثات ({chats.length})</h3>
+          <h3 className={`font-bold mb-4 ${theme === 'light' ? 'text-slate-900' : ''}`}>المحادثات ({chats.length})</h3>
           <div className="space-y-3 max-h-96 overflow-y-auto">
             {chats.map((chat) => (
               <div
                 key={chat.id}
                 onClick={() => setPhoneNumber(chat.id.replace('@c.us', ''))}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors border border-transparent hover:border-[#25D366]/20"
+                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors border border-transparent hover:border-[#25D366]/20 ${theme === 'light' ? 'hover:bg-slate-50' : 'hover:bg-white/5'}`}
               >
                 <div className="w-10 h-10 rounded-full bg-[#25D366]/20 flex items-center justify-center text-lg">
                   {chat.isGroup ? '👥' : '👤'}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{chat.name}</p>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className={`text-xs truncate ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>
                     {chat.lastMessage?.content || 'لا توجد رسائل'}
                   </p>
                 </div>
@@ -473,17 +475,17 @@ const WhatsAppConnect = () => {
         <div className="card p-4 text-center">
           <div className="text-3xl mb-2">💰</div>
           <h4 className="font-bold text-sm">مجاني 100%</h4>
-          <p className="text-xs text-gray-500">بدون رسوم API</p>
+          <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>بدون رسوم API</p>
         </div>
         <div className="card p-4 text-center">
           <div className="text-3xl mb-2">📱</div>
           <h4 className="font-bold text-sm">Multi-Tenant</h4>
-          <p className="text-xs text-gray-500">كل حساب متصل منفصل</p>
+          <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>كل حساب متصل منفصل</p>
         </div>
         <div className="card p-4 text-center">
           <div className="text-3xl mb-2">⚡</div>
           <h4 className="font-bold text-sm">Real-time</h4>
-          <p className="text-xs text-gray-500">رسائل فورية عبر Socket.io</p>
+          <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>رسائل فورية عبر Socket.io</p>
         </div>
       </div>
 
@@ -497,48 +499,48 @@ const WhatsAppConnect = () => {
             <div className="flex gap-3">
               <span className="text-amber-400">💾</span>
               <div>
-                <p className="text-white font-medium">استهلاك الموارد</p>
-                <p className="text-gray-400">كل اتصال يستهلك ~150-200 MB ذاكرة (يعمل متصفح خفي)</p>
+                <p className={`font-medium ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>استهلاك الموارد</p>
+                <p className={`${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>كل اتصال يستهلك ~150-200 MB ذاكرة (يعمل متصفح خفي)</p>
               </div>
             </div>
             <div className="flex gap-3">
               <span className="text-amber-400">📱</span>
               <div>
-                <p className="text-white font-medium">الهاتف يجب أن يبقى متصلاً</p>
-                <p className="text-gray-400">واتس آب Web يتطلب اتصال الهاتف بالإنترنت باستمرار</p>
+                <p className={`font-medium ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>الهاتف يجب أن يبقى متصلاً</p>
+                <p className={`${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>واتس آب Web يتطلب اتصال الهاتف بالإنترنت باستمرار</p>
               </div>
             </div>
             <div className="flex gap-3">
               <span className="text-amber-400">🔒</span>
               <div>
-                <p className="text-white font-medium">غير مناسب للإرسال الكمي</p>
-                <p className="text-gray-400">مصمم للاستخدام الشخصي والشركات الصغيرة، وليس للـ bulk messaging</p>
+                <p className={`font-medium ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>غير مناسب للإرسال الكمي</p>
+                <p className={`${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>مصمم للاستخدام الشخصي والشركات الصغيرة، وليس للـ bulk messaging</p>
               </div>
             </div>
             <div className="flex gap-3">
               <span className="text-amber-400">⚠️</span>
               <div>
-                <p className="text-white font-medium">خطر الحظر</p>
-                <p className="text-gray-400">الإرسال المكثف قد يؤدي لحسابك من واتس آب - استخدم بحكمة</p>
+                <p className={`font-medium ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>خطر الحظر</p>
+                <p className={`${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>الإرسال المكثف قد يؤدي لحسابك من واتس آب - استخدم بحكمة</p>
               </div>
             </div>
             <div className="flex gap-3">
               <span className="text-amber-400">🔢</span>
               <div>
-                <p className="text-white font-medium">حد الاتصالات المتزامنة</p>
-                <p className="text-gray-400">الحد الأقصى 10 اتصالات نشطة في نفس الوقت (قابل للزيادة عبر الدعم)</p>
+                <p className={`font-medium ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>حد الاتصالات المتزامنة</p>
+                <p className={`${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>الحد الأقصى 10 اتصالات نشطة في نفس الوقت (قابل للزيادة عبر الدعم)</p>
               </div>
             </div>
             <div className="flex gap-3">
               <span className="text-amber-400">⚡</span>
               <div>
-                <p className="text-white font-medium">الاتصال قد ينقطع</p>
-                <p className="text-gray-400">إذا انقطع الهاتف من الإنترنت أو إغلقت واتس آب، ستحتاج إعادة المسح</p>
+                <p className={`font-medium ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>الاتصال قد ينقطع</p>
+                <p className={`${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>إذا انقطع الهاتف من الإنترنت أو إغلقت واتس آب، ستحتاج إعادة المسح</p>
               </div>
             </div>
           </div>
           <div className="mt-4 pt-4 border-t border-amber-500/20">
-            <p className="text-xs text-gray-500">
+            <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>
               💡 <span className="text-amber-400">بديل:</span> للإرسال الكمي والاستخدام التجاري، نوصي باستخدام 
               <span className="text-green-400"> WhatsApp Business API</span> (يتطلب موافقة واتس آب)
             </p>

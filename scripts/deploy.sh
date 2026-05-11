@@ -42,8 +42,8 @@ if command -v mongodump &> /dev/null; then
 fi
 
 # Backup .env files
-if [ -f "frontend/backend/.env" ]; then
-    cp frontend/backend/.env "$BACKUP_DIR/env-backend-$TIMESTAMP"
+if [ -f "backend/.env" ]; then
+    cp backend/.env "$BACKUP_DIR/env-backend-$TIMESTAMP"
 fi
 
 # ========================================
@@ -53,19 +53,14 @@ fi
 echo ""
 echo "📥 Installing dependencies..."
 
-cd frontend/frontend
+cd frontend
 npm ci --production=false
 npm run build
 cd ../..
 
-cd frontend/backend
+cd backend
 npm ci --production
 cd ../..
-
-cd landing-pages
-npm ci
-node build.js
-cd ..
 
 echo "✅ Dependencies installed"
 
@@ -76,8 +71,8 @@ echo "✅ Dependencies installed"
 echo ""
 echo "⚙️ Setting up environment..."
 
-if [ ! -f "frontend/backend/.env" ]; then
-    cat > frontend/backend/.env << EOF
+if [ ! -f "backend/.env" ]; then
+    cat > backend/.env << EOF
 NODE_ENV=$PM2_ENV
 PORT=5000
 MONGODB_URI=mongodb://localhost:27017/autoflow
@@ -99,7 +94,7 @@ module.exports = {
   apps: [
     {
       name: 'autoflow-backend',
-      cwd: './frontend/backend',
+      cwd: './backend',
       script: 'server.js',
       instances: 2,
       exec_mode: 'cluster',
@@ -110,18 +105,6 @@ module.exports = {
       error_file: './logs/backend-error.log',
       out_file: './logs/backend-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss'
-    },
-    {
-      name: 'autoflow-landing',
-      cwd: './landing-pages',
-      script: 'server.js',
-      instances: 1,
-      env_$PM2_ENV: {
-        NODE_ENV: '$PM2_ENV',
-        PORT: 8080
-      },
-      error_file: './logs/landing-error.log',
-      out_file: './logs/landing-out.log'
     }
   ]
 };
@@ -138,7 +121,7 @@ echo "✅ PM2 configured"
 echo ""
 echo "🗄️ Running database migrations..."
 
-cd frontend/backend
+cd backend
 if [ -d "migrations" ]; then
     npx migrate-mongo up
 fi
@@ -229,15 +212,7 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-    
-    # WhatsApp Webhook
-    location /webhook {
-        proxy_pass http://localhost:3002;
-        proxy_http_version 1.1;
-        proxy_set_header Host \$host;
-    }
-    
+    }    
     # Static files caching
     location ~* \.(jpg|jpeg|png|gif|ico|css|js|woff2|woff)$ {
         expires 30d;
@@ -286,12 +261,7 @@ else
     echo "❌ API health check failed"
 fi
 
-# Check Landing Page
-if curl -s https://$DOMAIN | grep -q "AutoFlow"; then
-    echo "✅ Landing page is accessible"
-else
-    echo "❌ Landing page check failed"
-fi
+
 
 # ========================================
 # NOTIFICATION

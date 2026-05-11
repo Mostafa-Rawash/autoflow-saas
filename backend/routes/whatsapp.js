@@ -9,16 +9,40 @@ const { auth, hasPermission } = require('../middleware/auth');
 router.post('/connect', auth, async (req, res) => {
   try {
     const result = await whatsappService.initializeClient(req.user.id);
-    
+
     res.json({
       success: true,
       ...result
     });
   } catch (error) {
     console.error('Error initializing WhatsApp:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: 'Failed to initialize WhatsApp connection' 
+      error: 'Failed to initialize WhatsApp connection'
+    });
+  }
+});
+
+// @route   POST /api/whatsapp/refresh-qr
+// @desc    Re-initialize WhatsApp connection to get fresh QR
+// @access  Private
+router.post('/refresh-qr', auth, async (req, res) => {
+  try {
+    // Disconnect existing client first
+    await whatsappService.disconnect(req.user.id);
+    // Small delay before re-initializing
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const result = await whatsappService.initializeClient(req.user.id);
+
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    console.error('Error refreshing QR:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to refresh QR code'
     });
   }
 });

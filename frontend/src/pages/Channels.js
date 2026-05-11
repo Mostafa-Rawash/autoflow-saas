@@ -1,352 +1,546 @@
 import React, { useState, useEffect } from 'react';
+import { useTheme } from '../context/ThemeContext';
 import { Link } from 'react-router-dom';
-import { Check, X, RefreshCw, ExternalLink, Power, Settings, QrCode, Lock, Sparkles, Loader2 } from 'lucide-react';
-import { channelsAPI } from '../api';
+import { Lock, Sparkles, RefreshCw, Check, X, Smartphone, Scan, Wifi, WifiOff, Send } from 'lucide-react';
+import { whatsappAPI, telegramAPI, channelsAPI } from '../api';
 import toast from 'react-hot-toast';
 
 const Channels = () => {
-  const [connecting, setConnecting] = useState(null);
-  const [showQR, setShowQR] = useState(false);
+  const theme = useTheme();
+  const [whatsappStatus, setWhatsappStatus] = useState(null);
+  const [qrCode, setQrCode] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(null);
-
-  // Default channel definitions
-  const defaultChannels = [
-    { id: 'whatsapp', name: 'واتس آب', icon: '📱', color: '#25D366', available: true },
-    { id: 'messenger', name: 'ماسنجر', icon: '💬', color: '#0084FF', available: false },
-    { id: 'instagram', name: 'إنستجرام', icon: '📷', color: '#E4405F', available: false },
-    { id: 'telegram', name: 'تيليجرام', icon: '✈️', color: '#0088cc', available: false },
-    { id: 'livechat', name: 'Live Chat', icon: '🖥️', color: '#00D4AA', available: false },
-    { id: 'email', name: 'بريد إلكتروني', icon: '📧', color: '#EA4335', available: false },
-    { id: 'sms', name: 'SMS', icon: '📱', color: '#7C3AED', available: false },
-    { id: 'api', name: 'API', icon: '🔗', color: '#F59E0B', available: true }
-  ];
-
-  const [channels, setChannels] = useState(defaultChannels.map(ch => ({
-    ...ch,
-    status: 'disconnected',
-    lastSync: null,
-    messages: 0
-  })));
+  const [connecting, setConnecting] = useState(false);
+  const [telegramStatus, setTelegramStatus] = useState(null);
+  const [telegramConnection, setTelegramConnection] = useState(null);
+  const [telegramConnecting, setTelegramConnecting] = useState(false);
+  const [telegramBotToken, setTelegramBotToken] = useState('');
+  const [telegramBotUsername, setTelegramBotUsername] = useState('');
+  const [showQRModal, setShowQRModal] = useState(false);
 
   useEffect(() => {
-    fetchChannels();
-  }, []);
+    checkWhatsAppStatus();
+    checkTelegramStatus();
+    // Poll status every 5 seconds when modal is open
+    const interval = setInterval(() => {
+      if (showQRModal && !connecting) {
+        pollQRCode();
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [showQRModal, connecting]);
 
-  const fetchChannels = async () => {
-    setLoading(true);
+  const checkWhatsAppStatus = async () => {
     try {
-      const { data } = await channelsAPI.getAll();
-      
-      if (data.success && data.integrations) {
-        // Merge API data with default channels
-        const updatedChannels = defaultChannels.map(defCh => {
-          const integration = data.integrations.find(i => i.type === defCh.id);
-          if (integration) {
-            return {
-              ...defCh,
-              status: integration.status === 'connected' ? 'connected' : 'disconnected',
-              lastSync: integration.lastSync,
-              messages: integration.messages || 0,
-              integrationId: integration._id
-            };
-          }
-          return defCh;
-        });
-        setChannels(updatedChannels);
+      setLoading(true);
+      const [{ data: whatsappResp }, { data: channelsResp }] = await Promise.all([
+        whatsappAPI.getStatus(),
+        channelsAPI.getAll()
+      ]);
+      const persistedWhatsApp = (channelsResp?.channels || []).find((ch) => ch.type === 'whatsapp');
+      const nextStatus = persistedWhatsApp?.status || whatsappResp?.data?.status || 'not_initialized';
+      setWhatsappStatus({
+        ...(whatsappResp?.data || {}),
+        persistedStatus: persistedWhatsApp?.status || null,
+        connectedAt: persistedWhatsApp?.connectedAt || null,
+        lastSyncAt: persistedWhatsApp?.lastSyncAt || null,
+        lastError: persistedWhatsApp?.lastError || whatsappResp?.data?.lastError || null,
+        status: nextStatus
+      });
+      if ((nextStatus === 'initializing' || nextStatus === 'connecting' || nextStatus === 'qr_ready') && !showQRModal) {
+        setShowQRModal(true);
       }
     } catch (error) {
-      console.error('Error fetching channels:', error);
-      // Keep default state on error
+      console.error('Error checking WhatsApp status:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleConnect = async (channelId) => {
-    setConnecting(channelId);
-    setActionLoading(channelId);
-    
+  const checkTelegramStatus = async () => {
     try {
-      const { data } = await channelsAPI.connect({
-        type: channelId,
-        name: channels.find(c => c.id === channelId)?.name
+      const { data: channelsData } = await channelsAPI.getAll();
+      const telegram = (channelsData?.channels || []).find((ch) => ch.type === 'telegram');
+
+      // Also check live Telegram service status
+      let liveStatus = null;
+      try {
+        const { data: tgResp } = await telegramAPI.getStatus();
+        liveStatus = tgResp?.data || tgResp;
+      } catch (e) { /* ignore */ }
+
+      const isConnected = telegram?.status === 'connected' || liveStatus?.status === 'connected';
+      const botUsername = telegram?.config?.botUsername || liveStatus?.botUsername || null;
+      const hasToken = !!(telegram?.config?.botToken);
+
+      setTelegramConnection(telegram || null);
+      setTelegramStatus(isConnected ? {
+        status: 'connected',
+        botUsername,
+        hasToken,
+        updatedAt: telegram?.updatedAt
+      } : {
+        status: 'needs_config',
+        botUsername: null,
+        hasToken: false,
+        updatedAt: null
       });
-      
-      if (data.success) {
-        setChannels(prev => prev.map(ch => 
-          ch.id === channelId 
-            ? { ...ch, status: data.integration?.status === 'connected' ? 'connected' : 'pending', lastSync: new Date().toISOString(), integrationId: data.integration?._id }
-            : ch
-        ));
-        toast.success(`تم توصيل ${channels.find(c => c.id === channelId)?.name} بنجاح!`);
-      } else {
-        toast.error(data.error || 'فشل في التوصيل');
+      if (botUsername) setTelegramBotUsername(botUsername);
+      if (hasToken) setTelegramBotToken(prev => prev || '••••••••');
+    } catch (error) {
+      console.error('Error checking Telegram status:', error);
+    }
+  };
+
+  const pollQRCode = async () => {
+    try {
+      const { data } = await whatsappAPI.getQR();
+      if (data?.qr) {
+        setQrCode(data.qr);
+      }
+      if (data?.status === 'initializing' || data?.status === 'connecting' || data?.status === 'qr_ready') {
+        setShowQRModal(true);
+      }
+      if (data?.status === 'connected') {
+        setWhatsappStatus({ status: 'connected' });
+        setShowQRModal(false);
+        toast.success('WhatsApp connected successfully!');
       }
     } catch (error) {
-      console.error('Error connecting channel:', error);
-      toast.error(error.response?.data?.error || 'فشل في التوصيل');
-    } finally {
-      setConnecting(null);
-      setActionLoading(null);
+      console.error('Error polling QR:', error);
     }
   };
 
-  const handleDisconnect = async (channelId) => {
-    const channel = channels.find(c => c.id === channelId);
-    if (!channel?.integrationId) {
-      // No integration in DB, just update local state
-      setChannels(prev => prev.map(ch => 
-        ch.id === channelId 
-          ? { ...ch, status: 'disconnected', lastSync: null, integrationId: null }
-          : ch
-      ));
-      toast.success('تم فصل القناة');
-      return;
-    }
-    
-    setActionLoading(channelId);
+  const handleConnect = async () => {
     try {
-      await channelsAPI.disconnect(channel.integrationId);
-      setChannels(prev => prev.map(ch => 
-        ch.id === channelId 
-          ? { ...ch, status: 'disconnected', lastSync: null, integrationId: null }
-          : ch
-      ));
-      toast.success('تم فصل القناة');
+      setConnecting(true);
+      setQrCode(null);
+      setShowQRModal(true);
+
+      // Initialize connection
+      const { data: connectData } = await whatsappAPI.connect();
+      // If QR is immediately available (client already existed)
+      if (connectData?.qr) {
+        setQrCode(connectData.qr);
+      }
+      toast.success('جاري توليد رمز QR...');
+
+      // Poll for QR code
+      let attempts = 0;
+      const maxAttempts = 12;
+      const poll = async () => {
+        if (attempts >= maxAttempts) return;
+        attempts++;
+        try {
+          const { data } = await whatsappAPI.getQR();
+          if (data?.qr) {
+            setQrCode(data.qr);
+            return;
+          }
+          if (data?.status === 'connected') {
+            setWhatsappStatus({ status: 'connected' });
+            setShowQRModal(false);
+            toast.success('WhatsApp connected successfully!');
+            return;
+          }
+        } catch (e) { /* ignore poll errors */ }
+        await new Promise(r => setTimeout(r, 3000));
+        await poll();
+      };
+      await poll();
+      await checkWhatsAppStatus();
     } catch (error) {
-      console.error('Error disconnecting channel:', error);
-      toast.error(error.response?.data?.error || 'فشل في فصل القناة');
+      toast.error('فشل في الاتصال بواتس آب');
+      setShowQRModal(false);
     } finally {
-      setActionLoading(null);
+      setConnecting(false);
     }
   };
 
-  const formatLastSync = (dateString) => {
-    if (!dateString) return 'غير متصل';
-    const date = new Date(dateString);
-    return date.toLocaleString('ar-EG', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
+  const handleTelegramConnect = async () => {
+    try {
+      setTelegramConnecting(true);
+      await checkTelegramStatus();
+      const hasSavedTelegram = !!telegramConnection?.config?.botToken && !!telegramConnection?.config?.botUsername;
+      const payload = {};
+      if (!hasSavedTelegram) {
+        if (telegramBotToken && telegramBotToken !== '••••••••') payload.botToken = telegramBotToken.trim();
+        if (telegramBotUsername) payload.botUsername = telegramBotUsername.trim().replace(/^@/, '');
+      }
+      const { data } = await telegramAPI.connect(payload);
+      setTelegramConnection(data.data?.connection || null);
+      setTelegramStatus(data.data);
+      if (data?.data?.connection?.config?.botUsername) setTelegramBotUsername(data.data.connection.config.botUsername);
+      if (data?.data?.connection?.config?.botToken) setTelegramBotToken('••••••••');
+      toast.success('Telegram ready');
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to enable Telegram');
+    } finally {
+      setTelegramConnecting(false);
+    }
   };
 
-  const connectedCount = channels.filter(c => c.status === 'connected').length;
-  const availableCount = channels.filter(c => c.available).length;
+  const handleTelegramDisconnect = async () => {
+    try {
+      await telegramAPI.disconnect();
+      setTelegramStatus({ status: 'needs_config', botUsername: null, hasToken: false });
+      toast.success('Telegram disconnected');
+    } catch (error) {
+      toast.error('Failed to disconnect Telegram');
+    }
+  };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
-      </div>
-    );
-  }
+  const handleDisconnect = async () => {
+    try {
+      await whatsappAPI.disconnect();
+      setWhatsappStatus((prev) => ({ ...(prev || {}), status: 'disconnected', persistedStatus: 'disconnected' }));
+      setQrCode(null);
+      await checkWhatsAppStatus();
+      toast.success('تم قطع اتصال واتس آب');
+    } catch (error) {
+      toast.error('فشل في قطع الاتصال');
+    }
+  };
+
+  const handleRefreshQR = async () => {
+    try {
+      setConnecting(true);
+      setQrCode(null);
+      const { data: refreshData } = await whatsappAPI.refreshQR();
+      if (refreshData?.qr) {
+        setQrCode(refreshData.qr);
+      }
+      toast.success('جاري تحديث رمز QR...');
+
+      // Poll for new QR
+      let attempts = 0;
+      const poll = async () => {
+        if (attempts >= 10) return;
+        attempts++;
+        try {
+          const { data } = await whatsappAPI.getQR();
+          if (data?.qr) {
+            setQrCode(data.qr);
+            return;
+          }
+        } catch (e) { /* ignore */ }
+        await new Promise(r => setTimeout(r, 3000));
+        await poll();
+      };
+      await poll();
+    } catch (error) {
+      toast.error('فشل في تحديث QR');
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const isConnected = whatsappStatus?.status === 'connected' || whatsappStatus?.persistedStatus === 'connected';
+
+  const comingSoonChannels = [
+    { id: 'messenger', name: 'ماسنجر', icon: '💬', color: '#0084FF' },
+    { id: 'instagram', name: 'إنستجرام', icon: '📷', color: '#E4405F' },
+    { id: 'email', name: 'بريد إلكتروني', icon: '📧', color: '#EA4335' },
+    { id: 'sms', name: 'SMS', icon: '📱', color: '#6B7280' },
+    { id: 'livechat', name: 'Live Chat', icon: '💬', color: '#7C3AED' }
+  ];
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">القنوات</h1>
-          <p className="text-gray-400 mt-1">وصّل قنوات التواصل مع عملائك</p>
+          <h1 className={`text-2xl font-bold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>القنوات</h1>
+          <p className={`mt-1 ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>قم بتوصيل قنوات التواصل الخاصة بك</p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="status-active px-3 py-1 text-sm">
-            {connectedCount} متصل
+          <span className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
+            isConnected 
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+              : 'bg-amber-50 text-amber-700 border border-amber-200'
+          }`}>
+            {isConnected ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+            {isConnected ? '1 متصل' : 'غير متصل'}
           </span>
-          <button className="btn-secondary flex items-center gap-2">
-            <RefreshCw className="w-4 h-4" />
-            تحديث
-          </button>
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card p-4 text-center">
-          <p className="text-2xl font-bold text-green-400">{connectedCount}</p>
-          <p className="text-sm text-gray-500">قنوات متصلة</p>
-        </div>
-        <div className="card p-4 text-center">
-          <p className="text-2xl font-bold">{availableCount}</p>
-          <p className="text-sm text-gray-500">قنوات متاحة</p>
-        </div>
-        <div className="card p-4 text-center">
-          <p className="text-2xl font-bold">
-            {channels.reduce((sum, c) => sum + c.messages, 0).toLocaleString()}
-          </p>
-          <p className="text-sm text-gray-500">رسالة هذا الأسبوع</p>
-        </div>
-        <div className="card p-4 text-center">
-          <p className="text-2xl font-bold">{channels.length}</p>
-          <p className="text-sm text-gray-500">قنوات مدعومة</p>
-        </div>
-      </div>
 
-      {/* Available Channels Section */}
-      <div className="card p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <h3 className="font-bold">قنوات متاحة الآن</h3>
-          <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">
-            نشط
-          </span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {channels.filter(c => c.available).map((channel) => (
-            <div 
-              key={channel.id} 
-              className="p-5 rounded-xl border transition-all"
-              style={{ 
-                borderColor: channel.status === 'connected' ? `${channel.color}40` : '#374151',
-                background: `${channel.color}05`
-              }}
-            >
-              <div className="flex items-center gap-4">
-                {/* Icon */}
-                <div
-                  className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl relative"
-                  style={{ background: `${channel.color}20` }}
-                >
-                  {channel.icon}
-                  {channel.status === 'connected' && (
-                    <div 
-                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
-                      style={{ background: channel.color }}
-                    >
-                      <Check className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                </div>
 
-                {/* Info */}
-                <div className="flex-1">
-                  <h3 className="font-bold">{channel.name}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`inline-block px-2 py-0.5 rounded text-xs ${
-                      channel.status === 'connected' ? 'status-active' : 'bg-gray-500/20 text-gray-400'
-                    }`}>
-                      {channel.status === 'connected' ? 'متصل ✓' : 'غير متصل'}
-                    </span>
-                    {channel.status === 'connected' && (
-                      <span className="text-xs text-gray-500">
-                        {channel.messages} رسالة
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-2">
-                  {channel.status === 'connected' ? (
-                    <>
-                      <Link
-                        to={`/conversations?channel=${channel.id}`}
-                        className="btn-secondary py-2 px-3 flex items-center gap-1 text-sm"
-                        style={{ borderColor: `${channel.color}40` }}
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        عرض
-                      </Link>
-                      <button
-                        onClick={() => handleDisconnect(channel.id)}
-                        className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                      >
-                        <Power className="w-4 h-4" />
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => handleConnect(channel.id)}
-                      disabled={connecting === channel.id}
-                      className="btn-primary py-2 px-4 flex items-center gap-1 text-sm"
-                      style={{ background: channel.color }}
-                    >
-                      {connecting === channel.id ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Power className="w-4 h-4" />
-                          توصيل
-                        </>
-                      )}
-                    </button>
-                  )}
+      {/* Telegram Card */}
+      <div className="card overflow-hidden">
+        <div className={`p-6 border-b ${theme === 'light' ? 'bg-sky-50 border-slate-200' : 'bg-sky-500/10 border-slate-800'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl relative" style={{ background: '#0088cc' }}>
+                <Send className="w-8 h-8 text-white" />
+                <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2 ${theme === 'light' ? 'border-white' : 'border-dark-800'}`} style={{ background: telegramStatus?.status === 'connected' ? '#25D366' : '#ef4444' }}>
+                  {telegramStatus?.status === 'connected' ? <Check className="w-3 h-3 text-white" /> : <X className="w-3 h-3 text-white" />}
                 </div>
               </div>
+              <div>
+                <h3 className={`text-xl font-bold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>تيليجرام</h3>
+                <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>Bot-based integration for Telegram messages</p>
+              </div>
             </div>
-          ))}
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${telegramStatus?.status === 'connected' ? (theme === 'light' ? 'bg-emerald-50 text-emerald-700' : 'bg-green-500/20 text-green-400') : (theme === 'light' ? 'bg-amber-50 text-amber-700' : 'bg-yellow-500/20 text-yellow-400')}`}>
+              {telegramStatus?.status === 'connected' ? '✓ متصل' : 'يحتاج إعداد'}
+            </span>
+          </div>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className={`p-4 rounded-xl space-y-3 ${theme === 'light' ? 'bg-slate-100' : 'bg-slate-200/50'}`}>
+            <h4 className={`font-medium mb-2 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>Telegram bot setup</h4>
+            <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+              Connect your own Telegram bot for this workspace. Each tenant stores its own bot token and username.
+            </p>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div>
+                <label className={`block text-xs mb-1 ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>Bot token</label>
+                <input
+                  type="password"
+                  value={telegramBotToken}
+                  onChange={(e) => setTelegramBotToken(e.target.value)}
+                  placeholder="123456:ABC-DEF..."
+                  className={`w-full px-3 py-2 rounded-lg text-sm ${theme === 'light' ? 'bg-white border border-slate-300 text-slate-900' : 'bg-slate-100 border border-slate-300 text-white'}`}
+                />
+              </div>
+              <div>
+                <label className={`block text-xs mb-1 ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>Bot username</label>
+                <input
+                  type="text"
+                  value={telegramBotUsername}
+                  onChange={(e) => setTelegramBotUsername(e.target.value)}
+                  placeholder="my_autoflow_bot"
+                  className={`w-full px-3 py-2 rounded-lg text-sm ${theme === 'light' ? 'bg-white border border-slate-300 text-slate-900' : 'bg-slate-100 border border-slate-300 text-white'}`}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <button onClick={handleTelegramConnect} disabled={telegramConnecting} className="btn-primary py-2.5 px-4 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              <Smartphone className="w-4 h-4" />
+              {telegramConnecting ? 'جاري التفعيل...' : 'تفعيل تيليجرام'}
+            </button>
+            <button onClick={handleTelegramDisconnect} className="px-4 py-2.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-red-500/30 transition-colors flex items-center gap-2">
+              <X className="w-4 h-4" />
+              قطع الاتصال
+            </button>
+          </div>
+        </div>
+      </div>
+      {/* WhatsApp Card - Main Channel */}
+      <div className="card overflow-hidden">
+        {/* Header with gradient */}
+        <div className={`bg-gradient-to-r from-[#25D366]/20 to-[#128C7E]/20 p-6 border-b ${theme === 'light' ? 'border-slate-200' : 'border-dark-700'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl relative" style={{ background: '#25D366' }}>
+                <svg viewBox="0 0 24 24" width="36" height="36" fill="white">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.377l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.885-9.885 9.885m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2 ${theme === 'light' ? 'border-white' : 'border-dark-800'}`} style={{ background: isConnected ? '#25D366' : '#ef4444' }}>
+                  {isConnected ? <Check className="w-3 h-3 text-white" /> : <X className="w-3 h-3 text-white" />}
+                </div>
+              </div>
+              <div>
+                <h3 className={`text-xl font-bold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>واتس آب</h3>
+                <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>توصيل رقم واتس آب الخاص بك</p>
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                isConnected
+                  ? (theme === 'light' ? 'bg-green-500/20 text-green-700' : 'bg-green-500/20 text-green-400')
+                  : (theme === 'light' ? 'bg-rose-50 text-rose-700' : 'bg-rose-500/20 text-rose-400')
+              }`}>
+                {isConnected ? '✓ متصل' : 'غير متصل'}
+              </span>
+              {whatsappStatus?.info?.pushname && (
+                <span className="text-xs text-slate-400">{whatsappStatus.info.pushname}</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {isConnected ? (
+            <div className="space-y-4">
+              {/* Connected Info */}
+              <div className={`flex items-center gap-4 p-4 rounded-xl border ${theme === 'light' ? 'bg-green-500/10 border-green-500/20' : 'bg-green-500/10 border-green-500/20'}`}>
+                <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <Check className="w-6 h-6 text-green-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-green-400">واتس آب متصل بنجاح</p>
+                  <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>يمكنك الآن إرسال واستقبال الرسائل</p>
+                </div>
+              </div>
+              
+              {/* Actions */}
+              <div className="flex flex-wrap gap-3">
+                <Link to="/conversations" className="btn-primary py-2.5 px-4 flex items-center gap-2">
+                  <Scan className="w-4 h-4" />
+                  عرض المحادثات
+                </Link>
+                <button 
+                  onClick={handleDisconnect} 
+                  className="px-4 py-2.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-red-500/30 transition-colors flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  قطع اتصال واتس آب
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Connection Instructions */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className={`p-4 rounded-xl ${theme === 'light' ? 'bg-slate-200/50' : 'bg-dark-800'}`}>
+                  <h4 className={`font-medium mb-2 flex items-center gap-2 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
+                    <span className="w-6 h-6 rounded-full bg-sky-600 text-white text-xs flex items-center justify-center">1</span>
+                    اضغط على زر التوصيل
+                  </h4>
+                  <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>سيتم توليد رمز QR للاتصال</p>
+                </div>
+                <div className={`p-4 rounded-xl ${theme === 'light' ? 'bg-slate-200/50' : 'bg-dark-800'}`}>
+                  <h4 className={`font-medium mb-2 flex items-center gap-2 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
+                    <span className="w-6 h-6 rounded-full bg-sky-600 text-white text-xs flex items-center justify-center">2</span>
+                    امسح رمز QR
+                  </h4>
+                  <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>افتح واتس آب → الإعدادات → الأجهزة المرتبطة</p>
+                </div>
+              </div>
+
+              {/* Connect Button */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button 
+                  onClick={handleConnect} 
+                  disabled={connecting}
+                  className="flex-1 btn-primary py-4 text-lg flex items-center justify-center gap-3"
+                >
+                  {connecting ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      جاري التوصيل...
+                    </>
+                  ) : (
+                    <>
+                      <Smartphone className="w-5 h-5" />
+                      توصيل واتس آب
+                    </>
+                  )}
+                </button>
+                <button 
+                  onClick={handleDisconnect}
+                  className="px-4 py-4 rounded-lg bg-rose-50 text-rose-700 hover:bg-red-500/30 transition-colors flex items-center justify-center gap-2"
+                >
+                  <X className="w-5 h-5" />
+                  قطع الاتصال
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Coming Soon Channels Section */}
+      {/* QR Code Modal */}
+      {showQRModal && !isConnected && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="card max-w-md w-full p-6 animate-in fade-in zoom-in duration-300">
+            <div className="text-center">
+              <h3 className={`text-xl font-bold mb-2 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>امسح رمز QR بواسطة واتس آب</h3>
+              <p className={`text-sm mb-6 ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                افتح واتس آب على هاتفك ← الإعدادات ← الأجهزة المرتبطة ← ربط جهاز
+              </p>
+
+              {/* QR Code */}
+              <div className={`p-6 rounded-2xl inline-block mb-4 ${theme === 'light' ? 'bg-white' : 'bg-dark-800'}`}>
+                {qrCode ? (
+                  <img 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrCode)}`} 
+                    alt="WhatsApp QR Code"
+                    className="w-56 h-56"
+                  />
+                ) : (
+                  <div className="w-56 h-56 flex items-center justify-center">
+                    <RefreshCw className="w-12 h-12 text-slate-500 animate-spin" />
+                  </div>
+                )}
+              </div>
+
+              {/* Instructions */}
+              <div className={`rounded-lg p-4 mb-4 text-right ${theme === 'light' ? 'bg-slate-200/50' : 'bg-dark-800'}`}>
+                <ol className={`text-sm space-y-2 ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                  <li className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-green-500/20 text-green-400 text-xs flex items-center justify-center">1</span>
+                    افتح واتس آب على هاتفك
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-green-500/20 text-green-400 text-xs flex items-center justify-center">2</span>
+                    اذهب إلى الإعدادات
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-green-500/20 text-green-400 text-xs flex items-center justify-center">3</span>
+                    اختر الأجهزة المرتبطة
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-green-500/20 text-green-400 text-xs flex items-center justify-center">4</span>
+                    اضغط على ربط جهاز وامسح الرمز
+                  </li>
+                </ol>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button 
+                  onClick={handleRefreshQR}
+                  disabled={connecting}
+                  className="flex-1 btn-secondary py-2.5 flex items-center justify-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${connecting ? 'animate-spin' : ''}`} />
+                  تحديث الرمز
+                </button>
+                <button 
+                  onClick={() => setShowQRModal(false)}
+                  className={`px-4 py-2.5 rounded-lg transition-colors ${theme === 'light' ? 'bg-slate-200 hover:bg-slate-300' : 'bg-dark-700 hover:bg-dark-600'}`}
+                >
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Coming Soon Channels */}
       <div className="card p-6">
         <div className="flex items-center gap-2 mb-4">
-          <h3 className="font-bold text-gray-400">قنوات الاتصال المدعومة</h3>
-          <span className="px-2 py-1 bg-gray-500/20 text-gray-400 text-xs rounded-full flex items-center gap-1">
-            <Sparkles className="w-3 h-3" />
-            قريباً
+          <h3 className={`font-bold ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>قنوات قادمة</h3>
+          <span className={`px-2 py-1 text-xs rounded-full flex items-center gap-1 ${theme === 'light' ? 'bg-gray-500/20 text-slate-500' : 'bg-dark-700 text-slate-400'}`}>
+            <Sparkles className="w-3 h-3" /> قريباً
           </span>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {channels.filter(c => !c.available).map((channel) => (
+          {comingSoonChannels.map((channel) => (
             <div 
               key={channel.id} 
-              className="p-4 rounded-xl border border-gray-700 bg-gray-800/30 text-center cursor-not-allowed opacity-60 hover:opacity-80 transition-opacity"
-              onClick={() => toast('هذه القناة قيد التطوير وستكون متاحة قريباً! 🚀', { icon: '🔜' })}
+              className={`p-4 rounded-xl border text-center cursor-not-allowed opacity-60 hover:opacity-80 transition-opacity ${theme === 'light' ? 'border-slate-200 bg-slate-100/50' : 'border-dark-600 bg-dark-800'}`}
             >
-              {/* Icon */}
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mx-auto mb-2 bg-gray-700/50">
+              <div 
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mx-auto mb-2"
+                style={{ background: `${channel.color}20` }}
+              >
                 {channel.icon}
               </div>
-
-              {/* Name */}
-              <h3 className="font-medium text-gray-400 text-sm mb-1">{channel.name}</h3>
-
-              {/* Coming Soon Badge */}
-              <span className="inline-block px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-400 flex items-center gap-1 justify-center">
-                <Lock className="w-3 h-3" />
-                قريباً
+              <h3 className={`font-medium text-sm mb-1 ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>{channel.name}</h3>
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${theme === 'light' ? 'bg-slate-200 text-slate-500' : 'bg-dark-700 text-slate-400'}`}>
+                <Lock className="w-3 h-3" /> قريباً
               </span>
             </div>
           ))}
         </div>
-        <p className="text-center text-gray-500 text-sm mt-4">
-          نعمل على إضافة المزيد من القنوات لتوسيع نطاق تواصلك مع العملاء
-        </p>
-      </div>
-
-      {/* WhatsApp QR Section */}
-      <div className="card p-6">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-whatsapp/20 flex items-center justify-center text-2xl">
-            📱
-          </div>
-          <div className="flex-1">
-            <h3 className="font-bold">توصيل واتس آب</h3>
-            <p className="text-sm text-gray-400">
-              لوحة التحكم تتيح لك توصيل واتس آب عبر رمز QR أو API مباشر
-            </p>
-          </div>
-          <button className="btn-secondary flex items-center gap-2">
-            <QrCode className="w-4 h-4" />
-            عرض QR
-          </button>
-        </div>
-      </div>
-
-      {/* API Info */}
-      <div className="card p-6">
-        <h3 className="font-bold mb-4">معلومات API</h3>
-        <div className="bg-dark-800 rounded-lg p-4">
-          <p className="text-sm text-gray-400 mb-2">رابط API:</p>
-          <code className="text-primary-400 text-sm">
-            https://api.autoflow.com/v1/webhook/{'{channel}'}
-          </code>
-        </div>
-        <p className="text-sm text-gray-500 mt-3">
-          استخدم API لتوصيل أنظمتك الخارجية بأي قناة مدعومة
-        </p>
       </div>
     </div>
   );
