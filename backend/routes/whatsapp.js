@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const whatsappService = require('../services/whatsapp.service');
+const whatsappBusiness = require('../services/whatsappBusiness.service');
+const Integration = require('../models/Integration');
 const { auth, hasPermission } = require('../middleware/auth');
 
 // @route   POST /api/whatsapp/connect
@@ -227,6 +229,52 @@ router.post('/send-bulk', auth, hasPermission('replyConversations'), async (req,
       success: false,
       error: 'Failed to send bulk messages' 
     });
+  }
+});
+
+// @route   GET /api/whatsapp/mode
+// @desc    Get current WhatsApp mode (web or business_api)
+// @access  Private
+router.get('/mode', auth, async (req, res) => {
+  try {
+    const integration = await Integration.findOne({ user: req.user.id, type: 'whatsapp' });
+    const mode = integration?.config?.whatsappMode || 'web';
+    res.json({ success: true, mode });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to get WhatsApp mode' });
+  }
+});
+
+// @route   PUT /api/whatsapp/mode
+// @desc    Switch WhatsApp mode (web or business_api)
+// @access  Private
+router.put('/mode', auth, async (req, res) => {
+  try {
+    const { mode } = req.body;
+    if (!['web', 'business_api'].includes(mode)) {
+      return res.status(400).json({ success: false, error: 'Mode must be "web" or "business_api"' });
+    }
+
+    // If switching away from web mode, disconnect the web client
+    if (mode === 'business_api') {
+      try { await whatsappService.disconnect(req.user.id); } catch (e) { /* ignore if not connected */ }
+    }
+
+    // If switching away from business_api, disconnect business API
+    if (mode === 'web') {
+      try { await whatsappBusiness.disconnect(req.user.id); } catch (e) { /* ignore if not connected */ }
+    }
+
+    // Update the integration mode
+    await Integration.findOneAndUpdate(
+      { user: req.user.id, type: 'whatsapp' },
+      { $set: { 'config.whatsappMode': mode } },
+      { upsert: true, new: true }
+    );
+
+    res.json({ success: true, mode, message: `WhatsApp mode switched to ${mode}` });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to switch WhatsApp mode' });
   }
 });
 

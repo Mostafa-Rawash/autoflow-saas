@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowRight, Send, Clock, MessageSquare, Plus, Trash2, FileText, X, ChevronDown } from 'lucide-react';
-import { conversationsAPI, templatesAPI } from '../api';
+import { ArrowRight, Send, Clock, MessageSquare, Plus, Trash2, FileText, X, ChevronDown, Star } from 'lucide-react';
+import { conversationsAPI, templatesAPI, csatAPI } from '../api';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
@@ -19,6 +19,7 @@ const ConversationDetail = () => {
   const [templateSearch, setTemplateSearch] = useState('');
   const [fillingTemplate, setFillingTemplate] = useState(null);
   const [variableValues, setVariableValues] = useState({});
+  const [csatHover, setCsatHover] = useState(0);
   const messagesEndRef = useRef(null);
   const templatePickerRef = useRef(null);
 
@@ -111,6 +112,16 @@ const ConversationDetail = () => {
       toast.success('تم حذف الملاحظة');
     } catch (error) {
       toast.error('فشل في حذف الملاحظة');
+    }
+  };
+
+  const handleCSAT = async (score) => {
+    try {
+      const { data } = await csatAPI.submit(id, { score });
+      setConversation(prev => ({ ...prev, csat: data.conversation.csat }));
+      toast.success('تم إرسال التقييم بنجاح');
+    } catch (error) {
+      toast.error('فشل في إرسال التقييم');
     }
   };
 
@@ -437,6 +448,36 @@ const ConversationDetail = () => {
                 <Plus className="w-4 h-4" />
               </button>
             </div>
+          </div>
+
+          {/* CSAT Rating */}
+          <div className="glass rounded-2xl p-4">
+            <h3 className={`font-bold mb-3 flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><Star className="w-4 h-4" /> تقييم رضا العميل</h3>
+            {conversation.csat?.score ? (
+              <div className="text-center">
+                <div className="flex justify-center gap-1 mb-2">
+                  {[1,2,3,4,5].map(s => (
+                    <Star key={s} className={`w-8 h-8 ${s <= conversation.csat.score ? 'text-amber-400 fill-amber-400' : isDark ? 'text-slate-600' : 'text-gray-300'}`} />
+                  ))}
+                </div>
+                <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>التقييم: {conversation.csat.score}/5</p>
+                {conversation.csat.comment && <p className={`text-sm mt-1 ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{conversation.csat.comment}</p>}
+                {conversation.csat.ratedAt && <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>{new Date(conversation.csat.ratedAt).toLocaleDateString('ar-EG')}</p>}
+              </div>
+            ) : (
+              <div>
+                <div className="flex justify-center gap-1 mb-3">
+                  {[1,2,3,4,5].map(s => (
+                    <button key={s} onClick={() => handleCSAT(s)}
+                      className={`p-1 rounded-lg transition-all ${csatHover === s ? 'scale-110' : ''} ${isDark ? 'hover:bg-slate-700' : 'hover:bg-gray-50'}`}
+                      onMouseEnter={() => setCsatHover(s)} onMouseLeave={() => setCsatHover(0)}>
+                      <Star className={`w-8 h-8 transition-colors ${(csatHover || 0) >= s ? 'text-amber-400 fill-amber-400' : isDark ? 'text-slate-600' : 'text-gray-300'}`} />
+                    </button>
+                  ))}
+                </div>
+                <p className={`text-center text-sm ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>اضغط على النجوم للتقييم</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -5,6 +5,9 @@ const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const User = require('../models/User');
 const autoReplyService = require('./autoReply.service');
+const followUpService = require('./followUp.service');
+const eventBus = require('./eventBus.service');
+const { EVENTS } = require('./eventBus.service');
 
 class WhatsAppService {
   constructor() {
@@ -135,6 +138,14 @@ class WhatsAppService {
           }
         });
       }
+
+      // Emit event bus channel connected event
+      eventBus.emit(userId, EVENTS.CHANNEL_CONNECTED, {
+        channel: 'whatsapp',
+        info: { pushname: client.info?.pushname, me: client.info?.wid?.user }
+      }, 'whatsapp').catch(err =>
+        console.error('[EventBus] Error emitting CHANNEL_CONNECTED:', err.message)
+      );
     });
 
     // Message received event
@@ -164,6 +175,14 @@ class WhatsAppService {
           userId: userId,
           reason: reason
         });
+
+        // Emit event bus channel disconnected event
+        eventBus.emit(userId, EVENTS.CHANNEL_DISCONNECTED, {
+          channel: 'whatsapp',
+          reason: reason
+        }, 'whatsapp').catch(err =>
+          console.error('[EventBus] Error emitting CHANNEL_DISCONNECTED:', err.message)
+        );
       }
     });
 
@@ -492,6 +511,10 @@ class WhatsAppService {
           status: 'active'
         });
         await conversation.save();
+        // Follow-up: new conversation trigger
+        followUpService.handleConversationCreated(conversation).catch(err =>
+          console.error('[FollowUp] Error in WhatsApp new conversation hook:', err.message)
+        );
       } else {
         // Update contact info with latest data and fix @lid format
         let updated = false;
@@ -533,6 +556,11 @@ class WhatsAppService {
       conversation.unreadCount += 1;
       await conversation.save();
 
+      // Follow-up: contact replied — cancel pending no-reply follow-ups
+      followUpService.handleContactReply(userId, conversation._id).catch(err =>
+        console.error('[FollowUp] Error in WhatsApp contact reply hook:', err.message)
+      );
+
       // Emit via socket.io
       if (global.io) {
         global.io.to(`user-${userId}`).emit('new-message', {
@@ -547,18 +575,30 @@ class WhatsAppService {
         });
       }
 
+      // Emit event bus event
+      eventBus.emit(userId, EVENTS.MESSAGE_RECEIVED, {
+        conversationId: conversation._id,
+        messageId: newMessage._id,
+        channel: 'whatsapp',
+        contactId: sendableId,
+        content: message.body
+      }, 'whatsapp').catch(err =>
+        console.error('[EventBus] Error emitting MESSAGE_RECEIVED:', err.message)
+      );
+
       // Auto-reply matching
       if (message.body) {
-        const matchedRule = await autoReplyService.findMatch(userId, message.body);
-        if (matchedRule) {
+        const matchedResult = await autoReplyService.findMatch(userId, message.body, conversation);
+        if (matchedResult) {
+          const { rule: matchedRule, resolvedResponse } = matchedResult;
           try {
             const client = this.clients.get(userId.toString()) || this.clients.get(userId);
             if (client) {
-              await client.sendMessage(message.from, matchedRule.response);
+              await client.sendMessage(message.from, resolvedResponse);
               const replyMessage = new Message({
                 conversation: conversation._id,
                 sender: 'bot',
-                content: matchedRule.response,
+                content: resolvedResponse,
                 type: 'text',
                 metadata: {
                   autoReplyRule: matchedRule._id,
@@ -574,9 +614,48 @@ class WhatsAppService {
                   message: replyMessage
                 });
               }
+              // Emit auto-reply event
+              eventBus.emit(userId, EVENTS.AUTO_REPLY_MATCHED, {
+                conversationId: conversation._id,
+                ruleId: matchedRule._id,
+                ruleName: matchedRule.name,
+                channel: 'whatsapp'
+              }, 'whatsapp').catch(err =>
+                console.error('[EventBus] Error emitting AUTO_REPLY_MATCHED:', err.message)
+              );
             }
           } catch (err) {
             console.error('Error sending WhatsApp auto-reply:', err.message);
+          }
+        } else {
+          // No auto-reply matched — try AI auto-response
+          const aiResponder = require('./aiResponder.service');
+          const aiResponse = await aiResponder.handleIncomingMessage(userId, message.body, conversation, 'whatsapp');
+          if (aiResponse) {
+            try {
+              const client = this.clients.get(userId.toString()) || this.clients.get(userId);
+              if (client) {
+                await client.sendMessage(message.from, aiResponse.text);
+                const replyMessage = await aiResponder.saveMessage(conversation._id, userId, 'whatsapp', aiResponse);
+                if (replyMessage && global.io) {
+                  global.io.to(`user-${userId}`).emit('new-message', {
+                    conversationId: conversation._id,
+                    message: replyMessage
+                  });
+                }
+                // Emit AI response event
+                eventBus.emit(userId, EVENTS.AI_RESPONSE_SENT, {
+                  conversationId: conversation._id,
+                  messageId: replyMessage?._id,
+                  channel: 'whatsapp',
+                  source: 'auto_reply'
+                }, 'whatsapp').catch(err =>
+                  console.error('[EventBus] Error emitting AI_RESPONSE_SENT:', err.message)
+                );
+              }
+            } catch (err) {
+              console.error('[WhatsApp] Error sending AI auto-reply:', err.message);
+            }
           }
         }
       }

@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { Plus, Edit2, Trash2, Power, Search } from 'lucide-react';
-import axios from 'axios';
+import { Plus, Edit2, Trash2, Power, Search, FileText } from 'lucide-react';
+import { autoRepliesAPI, templatesAPI } from '../api';
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const AutoReplies = () => {
   const theme = useTheme();
@@ -21,8 +19,10 @@ const AutoReplies = () => {
     response: '',
     matchType: 'contains',
     priority: 0,
-    isActive: true
+    isActive: true,
+    templateId: ''
   });
+  const [templates, setTemplates] = useState([]);
 
   useEffect(() => {
     fetchRules();
@@ -30,9 +30,7 @@ const AutoReplies = () => {
 
   const fetchRules = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/auto-replies`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const { data } = await autoRepliesAPI.getAll();
       setRules(data.autoReplies || []);
     } catch (error) {
       console.error('Error fetching auto-replies:', error);
@@ -51,20 +49,16 @@ const AutoReplies = () => {
       };
 
       if (editingRule) {
-        await axios.put(`${API_URL}/auto-replies/${editingRule._id}`, payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await autoRepliesAPI.update(editingRule._id, payload);
         toast.success('تم تحديث القاعدة بنجاح');
       } else {
-        await axios.post(`${API_URL}/auto-replies`, payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await autoRepliesAPI.create(payload);
         toast.success('تم إنشاء القاعدة بنجاح');
       }
 
       setShowModal(false);
       setEditingRule(null);
-      setFormData({ name: '', keywords: '', response: '', matchType: 'contains', priority: 0, isActive: true });
+      setFormData({ name: '', keywords: '', response: '', matchType: 'contains', priority: 0, isActive: true, templateId: '' });
       fetchRules();
     } catch (error) {
       toast.error('حدث خطأ أثناء الحفظ');
@@ -75,9 +69,7 @@ const AutoReplies = () => {
     if (!window.confirm('هل أنت متأكد من حذف هذه القاعدة؟')) return;
     
     try {
-      await axios.delete(`${API_URL}/auto-replies/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await autoRepliesAPI.delete(id);
       toast.success('تم حذف القاعدة');
       fetchRules();
     } catch (error) {
@@ -87,9 +79,7 @@ const AutoReplies = () => {
 
   const handleToggle = async (rule) => {
     try {
-      await axios.put(`${API_URL}/auto-replies/${rule._id}`, { isActive: !rule.isActive }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await autoRepliesAPI.update(rule._id, { isActive: !rule.isActive });
       toast.success(rule.isActive ? 'تم تعطيل القاعدة' : 'تم تفعيل القاعدة');
       fetchRules();
     } catch (error) {
@@ -102,10 +92,11 @@ const AutoReplies = () => {
     setFormData({
       name: rule.name,
       keywords: rule.keywords.join(', '),
-      response: rule.response,
+      response: rule.response || '',
       matchType: rule.matchType,
       priority: rule.priority || 0,
-      isActive: rule.isActive
+      isActive: rule.isActive,
+      templateId: rule.templateId || ''
     });
     setShowModal(true);
   };
@@ -126,7 +117,7 @@ const AutoReplies = () => {
           <h1 className={`text-2xl font-bold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>الردود التلقائية</h1>
           <p className={`mt-1 ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>إدارة قواعد الرد التلقائي لواتس آب</p>
         </div>
-        <button onClick={() => { setEditingRule(null); setFormData({ name: '', keywords: '', response: '', matchType: 'contains', priority: 0, isActive: true }); setShowModal(true); }} className="btn-primary flex items-center gap-2">
+        <button onClick={async () => { setEditingRule(null); setFormData({ name: '', keywords: '', response: '', matchType: 'contains', priority: 0, isActive: true, templateId: '' }); try { const { data } = await templatesAPI.getAll(); setTemplates(data.templates || []); } catch {} setShowModal(true); }} className="btn-primary flex items-center gap-2">
           <Plus className="w-5 h-5" /> قاعدة جديدة
         </button>
       </div>
@@ -158,7 +149,7 @@ const AutoReplies = () => {
                     <span key={idx} className="px-2 py-1 bg-whatsapp/20 text-whatsapp text-xs rounded-full">{keyword}</span>
                   ))}
                 </div>
-                <p className={`text-sm ${theme === 'light' ? 'text-slate-600' : 'text-gray-400'}`}>{rule.response}</p>
+                <p className={`text-sm ${theme === 'light' ? 'text-slate-600' : 'text-gray-400'}`}>{rule.templateId?.name ? `📋 ${rule.templateId.name}: ` : ''}{rule.response}</p>
                 <p className={`text-xs mt-2 ${theme === 'light' ? 'text-slate-500' : 'text-gray-500'}`}>النوع: {rule.matchType} • الاستخدام: {rule.usageCount || 0}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -186,7 +177,30 @@ const AutoReplies = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">الرد</label>
-                <textarea value={formData.response} onChange={(e) => setFormData({ ...formData, response: e.target.value })} rows={3} className={`w-full ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-700 border border-dark-600'} rounded-lg py-2 px-4`} required />
+                <textarea value={formData.response} onChange={(e) => setFormData({ ...formData, response: e.target.value, templateId: '' })} rows={3} className={`w-full ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-700 border border-dark-600'} rounded-lg py-2 px-4`} required={!formData.templateId} />
+                {templates.length > 0 && (
+                  <div className="mt-2">
+                    <label className="block text-xs font-medium mb-1 opacity-70">أو اختيار قالب:</label>
+                    <select
+                      value={formData.templateId}
+                      onChange={(e) => {
+                        const tpl = templates.find(t => t._id === e.target.value);
+                        setFormData({
+                          ...formData,
+                          templateId: e.target.value,
+                          response: tpl ? (tpl.content?.text || tpl.content || '') : formData.response
+                        });
+                      }}
+                      className={`w-full text-sm ${theme === 'light' ? 'bg-slate-50 border border-slate-300' : 'bg-dark-700 border border-dark-600'} rounded-lg py-2 px-4`}
+                    >
+                      <option value="">— اختيار قالب —</option>
+                      {templates.map(t => (
+                        <option key={t._id} value={t._id}>{t.name} ({t.category})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <p className="text-xs mt-1 opacity-50">المتغيرات: {'{{name}}'}, {'{{phone}}'}, {'{{email}}'}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">نوع المطابقة</label>

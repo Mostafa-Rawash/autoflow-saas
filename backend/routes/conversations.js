@@ -3,6 +3,7 @@ const router = express.Router();
 const { body, query, param, validationResult } = require('express-validator');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
+const followUpService = require('../services/followUp.service');
 const { auth, checkLimit, checkSubscription } = require('../middleware/auth');
 
 // Validation helper
@@ -172,7 +173,10 @@ router.put('/:id', [
 ], validate, auth, async (req, res) => {
   try {
     const { status, priority, assignedTo, tags, notes } = req.body;
-    
+
+    // Fetch old conversation to detect status changes
+    const oldConversation = await Conversation.findOne({ _id: req.params.id, user: req.user.id });
+
     const conversation = await Conversation.findOneAndUpdate(
       { _id: req.params.id, user: req.user.id },
       { status, priority, assignedTo, tags, $push: { notes } },
@@ -182,7 +186,14 @@ router.put('/:id', [
     if (!conversation) {
       return res.status(404).json({ error: 'Conversation not found' });
     }
-    
+
+    // Follow-up: detect status change
+    if (status && oldConversation && oldConversation.status !== status) {
+      followUpService.handleStatusChange(conversation, oldConversation.status, status).catch(err =>
+        console.error('[FollowUp] Error in status change hook:', err.message)
+      );
+    }
+
     res.json({ success: true, conversation });
   } catch (err) {
     console.error(err);
@@ -308,6 +319,46 @@ router.get('/stats/overview', auth, async (req, res) => {
     ]);
     
     res.json({ success: true, stats: stats[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// @route   POST /api/conversations/:id/csat
+// @desc    Submit CSAT rating for a conversation
+// @access  Private
+router.post('/:id/csat', auth, async (req, res) => {
+  try {
+    const { score, comment } = req.body;
+    if (!score || score < 1 || score > 5) {
+      return res.status(400).json({ error: 'CSAT score must be between 1 and 5' });
+    }
+    const conversation = await Conversation.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      {
+        csat: { score, comment, ratedAt: new Date() },
+        $push: { timeline: { action: 'csat_rated', from: '', to: `${score}/5`, performedBy: req.user.id, timestamp: new Date() } }
+      },
+      { new: true }
+    );
+    if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
+    res.json({ success: true, conversation });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// @route   GET /api/conversations/:id/timeline
+// @desc    Get conversation timeline
+// @access  Private
+router.get('/:id/timeline', auth, async (req, res) => {
+  try {
+    const conversation = await Conversation.findOne({ _id: req.params.id, user: req.user.id })
+      .populate('timeline.performedBy', 'name avatar');
+    if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
+    res.json({ success: true, timeline: conversation.timeline || [] });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

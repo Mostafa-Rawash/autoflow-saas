@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { Link } from 'react-router-dom';
 import { Lock, Sparkles, RefreshCw, Check, X, Smartphone, Scan, Wifi, WifiOff, Send } from 'lucide-react';
-import { whatsappAPI, telegramAPI, channelsAPI } from '../api';
+import { whatsappAPI, whatsappBusinessAPI, telegramAPI, channelsAPI, instagramAPI, messengerAPI } from '../api';
 import toast from 'react-hot-toast';
 
 const Channels = () => {
@@ -17,10 +17,24 @@ const Channels = () => {
   const [telegramBotToken, setTelegramBotToken] = useState('');
   const [telegramBotUsername, setTelegramBotUsername] = useState('');
   const [showQRModal, setShowQRModal] = useState(false);
+  const [whatsappMode, setWhatsappMode] = useState('web'); // 'web' or 'business_api'
+  const [businessApiForm, setBusinessApiForm] = useState({ phoneNumberId: '', accessToken: '', businessAccountId: '', wabaId: '' });
+  const [businessApiConnecting, setBusinessApiConnecting] = useState(false);
+  const [businessApiStatus, setBusinessApiStatus] = useState(null);
+  const [instagramStatus, setInstagramStatus] = useState(null);
+  const [instagramConnecting, setInstagramConnecting] = useState(false);
+  const [instagramForm, setInstagramForm] = useState({ pageId: '', pageAccessToken: '', igUserId: '' });
+  const [messengerStatus, setMessengerStatus] = useState(null);
+  const [messengerConnecting, setMessengerConnecting] = useState(false);
+  const [messengerForm, setMessengerForm] = useState({ pageId: '', pageAccessToken: '' });
 
   useEffect(() => {
     checkWhatsAppStatus();
     checkTelegramStatus();
+    checkWhatsappMode();
+    checkBusinessApiStatus();
+    checkInstagramStatus();
+    checkMessengerStatus();
     // Poll QR every 3 seconds only when modal is open AND not yet connected
     const interval = setInterval(() => {
       if (showQRModal && !connecting && !isConnected) {
@@ -54,6 +68,63 @@ const Channels = () => {
       console.error('Error checking WhatsApp status:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkWhatsappMode = async () => {
+    try {
+      const { data } = await whatsappAPI.getMode();
+      if (data?.success) setWhatsappMode(data.mode || 'web');
+    } catch (e) { /* default to web */ }
+  };
+
+  const checkBusinessApiStatus = async () => {
+    try {
+      const { data } = await whatsappBusinessAPI.getStatus();
+      if (data?.success) setBusinessApiStatus(data);
+    } catch (e) { /* not connected */ }
+  };
+
+  const handleSwitchMode = async (mode) => {
+    try {
+      const { data } = await whatsappAPI.setMode(mode);
+      if (data?.success) {
+        setWhatsappMode(mode);
+        toast.success(mode === 'business_api' ? 'تم التبديل إلى WhatsApp Business API' : 'تم التبديل إلى وضع QR Code');
+      }
+    } catch (error) {
+      toast.error('فشل في تبديل الوضع');
+    }
+  };
+
+  const handleBusinessApiConnect = async () => {
+    try {
+      setBusinessApiConnecting(true);
+      const { data } = await whatsappBusinessAPI.connect(businessApiForm);
+      if (data?.success) {
+        toast.success('تم ربط WhatsApp Business API بنجاح');
+        setBusinessApiStatus({ status: 'connected', ...data });
+        checkWhatsAppStatus();
+      } else {
+        toast.error(data?.message || 'فشل في ربط Business API');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'فشل في ربط Business API');
+    } finally {
+      setBusinessApiConnecting(false);
+    }
+  };
+
+  const handleBusinessApiDisconnect = async () => {
+    try {
+      const { data } = await whatsappBusinessAPI.disconnect();
+      if (data?.success) {
+        toast.success('تم قطع اتصال WhatsApp Business API');
+        setBusinessApiStatus({ status: 'disconnected' });
+        checkWhatsAppStatus();
+      }
+    } catch (error) {
+      toast.error('فشل في قطع الاتصال');
     }
   };
 
@@ -193,6 +264,88 @@ const Channels = () => {
     }
   };
 
+  const checkInstagramStatus = async () => {
+    try {
+      const { data } = await instagramAPI.getStatus();
+      if (data?.status === 'connected' || data?.data?.status === 'connected') {
+        setInstagramStatus({ status: 'connected', ...((data.data || data)) });
+      } else {
+        setInstagramStatus({ status: 'disconnected' });
+      }
+    } catch (e) {
+      setInstagramStatus({ status: 'disconnected' });
+    }
+  };
+
+  const handleInstagramConnect = async () => {
+    try {
+      setInstagramConnecting(true);
+      const { data } = await instagramAPI.connect(instagramForm);
+      if (data?.status === 'connected' || data?.data?.status === 'connected') {
+        toast.success('تم ربط إنستجرام بنجاح');
+        setInstagramStatus({ status: 'connected', ...(data.data || data) });
+        setInstagramForm({ pageId: '', pageAccessToken: '', igUserId: '' });
+      } else {
+        toast.error(data?.message || data?.data?.message || 'فشل في ربط إنستجرام');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'فشل في ربط إنستجرام');
+    } finally {
+      setInstagramConnecting(false);
+    }
+  };
+
+  const handleInstagramDisconnect = async () => {
+    try {
+      await instagramAPI.disconnect();
+      setInstagramStatus({ status: 'disconnected' });
+      toast.success('تم قطع اتصال إنستجرام');
+    } catch (error) {
+      toast.error('فشل في قطع اتصال إنستجرام');
+    }
+  };
+
+  const checkMessengerStatus = async () => {
+    try {
+      const { data } = await messengerAPI.getStatus();
+      if (data?.status === 'connected' || data?.data?.status === 'connected') {
+        setMessengerStatus({ status: 'connected', ...((data.data || data)) });
+      } else {
+        setMessengerStatus({ status: 'disconnected' });
+      }
+    } catch (e) {
+      setMessengerStatus({ status: 'disconnected' });
+    }
+  };
+
+  const handleMessengerConnect = async () => {
+    try {
+      setMessengerConnecting(true);
+      const { data } = await messengerAPI.connect(messengerForm);
+      if (data?.status === 'connected' || data?.data?.status === 'connected') {
+        toast.success('تم ربط ماسنجر بنجاح');
+        setMessengerStatus({ status: 'connected', ...(data.data || data) });
+        setMessengerForm({ pageId: '', pageAccessToken: '' });
+      } else {
+        toast.error(data?.message || data?.data?.message || 'فشل في ربط ماسنجر');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'فشل في ربط ماسنجر');
+    } finally {
+      setMessengerConnecting(false);
+    }
+  };
+
+  const handleMessengerDisconnect = async () => {
+    try {
+      await messengerAPI.disconnect();
+      setMessengerStatus({ status: 'disconnected' });
+      toast.success('تم قطع اتصال ماسنجر');
+    } catch (error) {
+      toast.error('فشل في قطع اتصال ماسنجر');
+    }
+  };
+
   const handleDisconnect = async () => {
     try {
       await whatsappAPI.disconnect();
@@ -248,11 +401,8 @@ const Channels = () => {
   const isConnected = whatsappStatus?.status === 'connected' || whatsappStatus?.persistedStatus === 'connected';
 
   const comingSoonChannels = [
-    { id: 'messenger', name: 'ماسنجر', icon: '💬', color: '#0084FF' },
-    { id: 'instagram', name: 'إنستجرام', icon: '📷', color: '#E4405F' },
     { id: 'email', name: 'بريد إلكتروني', icon: '📧', color: '#EA4335' },
-    { id: 'sms', name: 'SMS', icon: '📱', color: '#6B7280' },
-    { id: 'livechat', name: 'Live Chat', icon: '💬', color: '#7C3AED' }
+    { id: 'sms', name: 'SMS', icon: '📱', color: '#6B7280' }
   ];
 
   return (
@@ -373,9 +523,149 @@ const Channels = () => {
           </div>
         </div>
 
+        {/* WhatsApp Mode Switcher */}
+        <div className={`px-6 py-3 border-b ${theme === 'light' ? 'border-slate-200 bg-slate-50' : 'border-dark-700 bg-dark-800'}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className={`text-sm font-medium ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>طريقة الاتصال</span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleSwitchMode('web')}
+              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                whatsappMode === 'web'
+                  ? 'bg-[#25D366] text-white shadow-md'
+                  : (theme === 'light' ? 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50' : 'bg-dark-700 text-slate-400 border border-dark-600 hover:bg-dark-600')
+              }`}
+            >
+              <Smartphone className="w-4 h-4 inline mr-1" />
+              رمز QR
+            </button>
+            <button
+              onClick={() => handleSwitchMode('business_api')}
+              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                whatsappMode === 'business_api'
+                  ? 'bg-[#25D366] text-white shadow-md'
+                  : (theme === 'light' ? 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50' : 'bg-dark-700 text-slate-400 border border-dark-600 hover:bg-dark-600')
+              }`}
+            >
+              <Lock className="w-4 h-4 inline mr-1" />
+              Business API
+            </button>
+          </div>
+          {whatsappMode === 'business_api' && (
+            <p className={`text-xs mt-1 ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+              يُنصح به للشركات — يتطلب حساب WhatsApp Business API رسمي من Meta
+            </p>
+          )}
+        </div>
+
         {/* Content */}
         <div className="p-6">
-          {isConnected ? (
+          {whatsappMode === 'business_api' ? (
+            /* Business API Form */
+            <div className="space-y-4">
+              {businessApiStatus?.status === 'connected' ? (
+                <div className="space-y-4">
+                  <div className={`flex items-center gap-4 p-4 rounded-xl border ${theme === 'light' ? 'bg-green-500/10 border-green-500/20' : 'bg-green-500/10 border-green-500/20'}`}>
+                    <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <Check className="w-6 h-6 text-green-400" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-green-400">WhatsApp Business API متصل</p>
+                      {businessApiStatus.displayPhoneNumber && (
+                        <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                          {businessApiStatus.displayPhoneNumber}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleBusinessApiDisconnect}
+                    className="w-full px-4 py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors"
+                  >
+                    قطع اتصال Business API
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className={`text-sm ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>
+                    أدخل بيانات WhatsApp Business API الخاصة بك
+                  </p>
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>
+                      Phone Number ID
+                    </label>
+                    <input
+                      type="text"
+                      value={businessApiForm.phoneNumberId}
+                      onChange={(e) => setBusinessApiForm(prev => ({ ...prev, phoneNumberId: e.target.value }))}
+                      placeholder="123456789012345"
+                      className={`w-full px-4 py-2 rounded-lg border text-sm ${theme === 'light' ? 'bg-white border-slate-300 text-slate-900' : 'bg-dark-700 border-dark-600 text-white'}`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>
+                      Access Token
+                    </label>
+                    <input
+                      type="password"
+                      value={businessApiForm.accessToken}
+                      onChange={(e) => setBusinessApiForm(prev => ({ ...prev, accessToken: e.target.value }))}
+                      placeholder="EAAxxxxxxxxxxxxx"
+                      className={`w-full px-4 py-2 rounded-lg border text-sm ${theme === 'light' ? 'bg-white border-slate-300 text-slate-900' : 'bg-dark-700 border-dark-600 text-white'}`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>
+                      Business Account ID (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={businessApiForm.businessAccountId}
+                      onChange={(e) => setBusinessApiForm(prev => ({ ...prev, businessAccountId: e.target.value }))}
+                      placeholder="1234567890"
+                      className={`w-full px-4 py-2 rounded-lg border text-sm ${theme === 'light' ? 'bg-white border-slate-300 text-slate-900' : 'bg-dark-700 border-dark-600 text-white'}`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>
+                      WABA ID (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={businessApiForm.wabaId}
+                      onChange={(e) => setBusinessApiForm(prev => ({ ...prev, wabaId: e.target.value }))}
+                      placeholder="1234567890"
+                      className={`w-full px-4 py-2 rounded-lg border text-sm ${theme === 'light' ? 'bg-white border-slate-300 text-slate-900' : 'bg-dark-700 border-dark-600 text-white'}`}
+                    />
+                  </div>
+                  <button
+                    onClick={handleBusinessApiConnect}
+                    disabled={businessApiConnecting || !businessApiForm.phoneNumberId || !businessApiForm.accessToken}
+                    className="w-full px-4 py-2 bg-[#25D366] text-white rounded-lg hover:bg-[#128C7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {businessApiConnecting ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        جاري الاتصال...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4" />
+                        ربط Business API
+                      </>
+                    )}
+                  </button>
+                  <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                    يمكنك الحصول على هذه البيانات من Meta Developer Dashboard → WhatsApp → API Setup
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Web/QR mode - existing UI */
+            <React.Fragment>
+            {isConnected ? (
             <div className="space-y-4">
               {/* Connected Info */}
               <div className={`flex items-center gap-4 p-4 rounded-xl border ${theme === 'light' ? 'bg-green-500/10 border-green-500/20' : 'bg-green-500/10 border-green-500/20'}`}>
@@ -484,6 +774,8 @@ const Channels = () => {
               </div>
             </div>
           )}
+          </React.Fragment>
+          )}
         </div>
       </div>
 
@@ -555,6 +847,119 @@ const Channels = () => {
           </div>
         </div>
       )}
+
+      {/* Instagram Card */}
+      <div className="card overflow-hidden">
+        <div className={`p-6 border-b ${theme === 'light' ? 'bg-gradient-to-r from-[#E4405F]/10 to-[#F7737C]/10 border-slate-200' : 'bg-[#E4405F]/10 border-slate-800'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl relative" style={{ background: 'linear-gradient(135deg, #E4405F, #833AB4, #F7737C)' }}>
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="white">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                </svg>
+                <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2 ${theme === 'light' ? 'border-white' : 'border-dark-800'}`} style={{ background: instagramStatus?.status === 'connected' ? '#25D366' : '#ef4444' }}>
+                  {instagramStatus?.status === 'connected' ? <Check className="w-3 h-3 text-white" /> : <X className="w-3 h-3 text-white" />}
+                </div>
+              </div>
+              <div>
+                <h3 className={`text-xl font-bold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>إنستجرام</h3>
+                <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>ربط حساب إنستجرام بيزنس للرسائل المباشرة</p>
+              </div>
+            </div>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${instagramStatus?.status === 'connected' ? (theme === 'light' ? 'bg-green-50 text-green-700' : 'bg-green-500/20 text-green-400') : (theme === 'light' ? 'bg-amber-50 text-amber-700' : 'bg-amber-500/20 text-amber-400')}`}>
+              {instagramStatus?.status === 'connected' ? '✓ متصل' : 'غير متصل'}
+            </span>
+          </div>
+        </div>
+        <div className="p-6 space-y-4">
+          {instagramStatus?.status === 'connected' ? (
+            <div className="space-y-4">
+              <div className={`flex items-center gap-4 p-4 rounded-xl border ${theme === 'light' ? 'bg-green-50 border-green-200' : 'bg-green-500/10 border-green-500/20'}`}>
+                <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <Check className="w-6 h-6 text-green-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-green-400">إنستجرام متصل</p>
+                  {instagramStatus?.pageName && (
+                    <p className={`text-sm ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                      الصفحة: {instagramStatus.pageName}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={handleInstagramDisconnect}
+                className="px-4 py-2.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-red-500/30 transition-colors flex items-center gap-2"
+              >
+                <X className="w-4 h-4" />
+                قطع اتصال إنستجرام
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className={`text-sm ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>
+                أدخل بيانات صفحة فيسبوك المرتبطة بحساب إنستجرام بيزنس
+              </p>
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>
+                  معرف صفحة فيسبوك (Page ID)
+                </label>
+                <input
+                  type="text"
+                  value={instagramForm.pageId}
+                  onChange={(e) => setInstagramForm(prev => ({ ...prev, pageId: e.target.value }))}
+                  placeholder="1234567890"
+                  className={`w-full px-4 py-2 rounded-lg border text-sm ${theme === 'light' ? 'bg-white border-slate-300 text-slate-900' : 'bg-dark-700 border-dark-600 text-white'}`}
+                />
+              </div>
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>
+                  رمز الوصول للصفحة (Page Access Token)
+                </label>
+                <input
+                  type="password"
+                  value={instagramForm.pageAccessToken}
+                  onChange={(e) => setInstagramForm(prev => ({ ...prev, pageAccessToken: e.target.value }))}
+                  placeholder="EAAxxxxxxxxxxxxx"
+                  className={`w-full px-4 py-2 rounded-lg border text-sm ${theme === 'light' ? 'bg-white border-slate-300 text-slate-900' : 'bg-dark-700 border-dark-600 text-white'}`}
+                />
+              </div>
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>
+                  معرف إنستجرام بيزنس (اختياري)
+                </label>
+                <input
+                  type="text"
+                  value={instagramForm.igUserId}
+                  onChange={(e) => setInstagramForm(prev => ({ ...prev, igUserId: e.target.value }))}
+                  placeholder="يتم استخراجه تلقائياً من الصفحة"
+                  className={`w-full px-4 py-2 rounded-lg border text-sm ${theme === 'light' ? 'bg-white border-slate-300 text-slate-900' : 'bg-dark-700 border-dark-600 text-white'}`}
+                />
+              </div>
+              <button
+                onClick={handleInstagramConnect}
+                disabled={instagramConnecting || !instagramForm.pageId || !instagramForm.pageAccessToken}
+                className="w-full px-4 py-2.5 rounded-lg text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                style={{ background: 'linear-gradient(135deg, #E4405F, #833AB4)' }}
+              >
+                {instagramConnecting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    جاري الاتصال...
+                  </>
+                ) : (
+                  <>
+                    ربط إنستجرام
+                  </>
+                )}
+              </button>
+              <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                يجب أن يكون حساب إنستجرام بيزنس مرتبطاً بصفحة فيسبوك. يمكنك الحصول على Page ID و Access Token من Meta Developer Dashboard.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Coming Soon Channels */}
       <div className="card p-6">

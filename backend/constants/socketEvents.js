@@ -37,8 +37,29 @@ const SOCKET_ERRORS = {
   PERMISSION_DENIED: 'permission_denote'
 };
 
+// Event Bus event names (shared with eventBus.service.js)
+const EVENT_BUS_EVENTS = {
+  MESSAGE_RECEIVED: 'message.received',
+  MESSAGE_SENT: 'message.sent',
+  MESSAGE_FAILED: 'message.failed',
+  CONVERSATION_CREATED: 'conversation.created',
+  CONVERSATION_UPDATED: 'conversation.updated',
+  CONVERSATION_STATUS_CHANGED: 'conversation.status_changed',
+  CONVERSATION_ASSIGNED: 'conversation.assigned',
+  CONVERSATION_RESOLVED: 'conversation.resolved',
+  CONTACT_CREATED: 'contact.created',
+  CONTACT_UPDATED: 'contact.updated',
+  CHANNEL_CONNECTED: 'channel.connected',
+  CHANNEL_DISCONNECTED: 'channel.disconnected',
+  AUTO_REPLY_MATCHED: 'autoreply.matched',
+  AI_RESPONSE_SENT: 'ai.response_sent',
+  WORKFLOW_TRIGGERED: 'workflow.triggered',
+  CSAT_SUBMITTED: 'csat.submitted'
+};
+
 module.exports = {
   SOCKET_EVENTS,
   USER_ROOM_PREFIX,
-  SOCKET_ERRORS
+  SOCKET_ERRORS,
+  EVENT_BUS_EVENTS
 };

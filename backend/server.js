@@ -36,11 +36,25 @@ const webhookRoutes = require('./routes/webhooks');
 const analyticsRoutes = require('./routes/analytics');
 const subscriptionRoutes = require('./routes/subscriptions');
 const whatsappRoutes = require('./routes/whatsapp');
+const whatsappBusinessRoutes = require('./routes/whatsappBusiness');
 const telegramRoutes = require('./routes/telegram');
 const adminRoutes = require('./routes/admin');
 const queueRoutes = require('./routes/queue');
 const autoReplyRoutes = require('./routes/autoReplies');
+const followUpRoutes = require('./routes/followUps');
+const documentRoutes = require('./routes/documents');
+const chatRoutes = require('./routes/chat');
+const settingsRoutes = require('./routes/settings');
 const logRoutes = require('./routes/logs');
+const contactRoutes = require('./routes/contacts');
+const departmentRoutes = require('./routes/departments');
+const workflowRoutes = require('./routes/workflows');
+const livechatRoutes = require('./routes/livechat');
+const helpArticleRoutes = require('./routes/helpArticles');
+const emailRoutes = require('./routes/email');
+const outgoingWebhookRoutes = require('./routes/outgoingWebhooks');
+const instagramRoutes = require('./routes/instagram');
+const messengerRoutes = require('./routes/messenger');
 const Role = require('./models/Role');
 
 const allowedOrigins = [
@@ -70,6 +84,9 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Serve static files (live chat widget)
+app.use(express.static('public'));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -135,11 +152,25 @@ const startServer = async () => {
   app.use('/api/analytics', analyticsRoutes);
   app.use('/api/subscriptions', subscriptionRoutes);
   app.use('/api/whatsapp', whatsappRoutes);
+  app.use('/api/whatsapp-business', whatsappBusinessRoutes);
   app.use('/api/telegram', telegramRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/queue', queueRoutes);
   app.use('/api/auto-replies', autoReplyRoutes);
+  app.use('/api/follow-ups', followUpRoutes);
+  app.use('/api/documents', documentRoutes);
+  app.use('/api/chat', chatRoutes);
+  app.use('/api/settings', settingsRoutes);
   app.use('/api/logs', logRoutes);
+  app.use('/api/contacts', contactRoutes);
+  app.use('/api/departments', departmentRoutes);
+  app.use('/api/workflows', workflowRoutes);
+  app.use('/api/livechat', livechatRoutes);
+  app.use('/api/help-articles', helpArticleRoutes);
+  app.use('/api/email', emailRoutes);
+  app.use('/api/outgoing-webhooks', outgoingWebhookRoutes);
+  app.use('/api/instagram', instagramRoutes);
+  app.use('/api/messenger', messengerRoutes);
   // Frontend error logging — regular auth, not admin-only
   const { auth } = require('./middleware/auth');
   const Log = require('./models/Log');
@@ -185,10 +216,26 @@ const startServer = async () => {
         subscriptions: '/api/subscriptions',
         analytics: '/api/analytics',
         whatsapp: '/api/whatsapp',
+        'whatsapp-business': '/api/whatsapp-business',
         telegram: '/api/telegram',
         webhooks: '/api/webhooks',
         admin: '/api/admin',
-        queue: '/api/queue'
+        queue: '/api/queue',
+        documents: '/api/documents',
+        chat: '/api/chat',
+        settings: '/api/settings',
+        logs: '/api/logs',
+        'auto-replies': '/api/auto-replies',
+        'follow-ups': '/api/follow-ups',
+        contacts: '/api/contacts',
+        departments: '/api/departments',
+        workflows: '/api/workflows',
+        livechat: '/api/livechat',
+        'help-articles': '/api/help-articles',
+        email: '/api/email',
+        'outgoing-webhooks': '/api/outgoing-webhooks',
+        instagram: '/api/instagram',
+        messenger: '/api/messenger'
       }
     });
   });
@@ -267,6 +314,19 @@ const startServer = async () => {
     const whatsappService = require('./services/whatsapp.service');
     messageQueueService.startProcessor(whatsappService, 5000);
 
+    // Start follow-up checker (runs every 60 seconds)
+    const followUpService = require('./services/followUp.service');
+    followUpService.startChecker(60000);
+
+    // Start event bus cleanup (runs every 24 hours)
+    const eventBusService = require('./services/eventBus.service');
+    setInterval(() => { eventBusService.cleanup(); }, 24 * 60 * 60 * 1000);
+    console.log('🚌 Event bus ready');
+
+    // Register outgoing webhook global handler
+    const outgoingWebhookService = require('./services/outgoingWebhook.service');
+    outgoingWebhookService.registerGlobalHandler();
+
     // Log Telegram service status and resume polling for connected bots
     const telegramService = require('./services/telegram.service');
     telegramService.healthCheck().then(health => {
@@ -288,6 +348,24 @@ const startServer = async () => {
         }
       }
     }).catch(err => console.error('Error resuming Telegram bots:', err.message));
+
+    // Resume WhatsApp Business API connections
+    const whatsappBusiness = require('./services/whatsappBusiness.service');
+    whatsappBusiness.resumeClients().then(count => {
+      if (count > 0) console.log(`📱 Resumed ${count} WhatsApp Business API client(s)`);
+    }).catch(err => console.error('Error resuming WhatsApp Business API clients:', err.message));
+
+    // Resume Instagram connections
+    const instagramService = require('./services/instagram.service');
+    instagramService.resumeClients().then(count => {
+      if (count > 0) console.log(`📷 Resumed ${count} Instagram client(s)`);
+    }).catch(err => console.error('Error resuming Instagram clients:', err.message));
+
+    // Resume Messenger connections
+    const messengerService = require('./services/messenger.service');
+    messengerService.resumeClients().then(count => {
+      if (count > 0) console.log(`💬 Resumed ${count} Messenger client(s)`);
+    }).catch(err => console.error('Error resuming Messenger clients:', err.message));
   });
 };
 

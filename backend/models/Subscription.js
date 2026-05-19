@@ -67,16 +67,18 @@ const SubscriptionSchema = new mongoose.Schema({
     messages: { type: Number, default: 0 },
     teamMembers: { type: Number, default: 1 },
     templates: { type: Number, default: 0 },
-    channels: { type: Number, default: 0 }
+    channels: { type: Number, default: 0 },
+    aiMessages: { type: Number, default: 0 }
   },
-  
+
   // Limits based on plan
   limits: {
     conversations: { type: Number, default: 100 },
     messages: { type: Number, default: 1000 },
     teamMembers: { type: Number, default: 2 },
     templates: { type: Number, default: 10 },
-    channels: { type: Number, default: 1 }
+    channels: { type: Number, default: 1 },
+    aiMessages: { type: Number, default: 50 }
   },
   
   // Invoices
@@ -111,10 +113,10 @@ SubscriptionSchema.index({ status: 1, endDate: 1 });
 // Update limits based on plan
 SubscriptionSchema.pre('save', function(next) {
   const planLimits = {
-    free: { conversations: 100, messages: 1000, teamMembers: 2, templates: 10, channels: 1 },
-    basic: { conversations: 1000, messages: 10000, teamMembers: 5, templates: 50, channels: 3 },
-    standard: { conversations: 5000, messages: 50000, teamMembers: 10, templates: 100, channels: 5 },
-    premium: { conversations: Infinity, messages: Infinity, teamMembers: Infinity, templates: Infinity, channels: 8 }
+    free: { conversations: 100, messages: 1000, teamMembers: 2, templates: 10, channels: 1, aiMessages: 50 },
+    basic: { conversations: 1000, messages: 10000, teamMembers: 5, templates: 50, channels: 3, aiMessages: 500 },
+    standard: { conversations: 5000, messages: 50000, teamMembers: 10, templates: 100, channels: 5, aiMessages: 2000 },
+    premium: { conversations: Infinity, messages: Infinity, teamMembers: Infinity, templates: Infinity, channels: 8, aiMessages: Infinity }
   };
   
   this.limits = planLimits[this.plan];

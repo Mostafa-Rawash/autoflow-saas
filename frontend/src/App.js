@@ -22,8 +22,17 @@ import Team from "./pages/Team";
 import Subscription from "./pages/Subscription";
 import WhatsAppConnect from "./pages/WhatsAppConnect";
 import AutoReplies from "./pages/AutoReplies";
+import FollowUps from "./pages/FollowUps";
+import KnowledgeBase from "./pages/KnowledgeBase";
+import AIChat from "./pages/AIChat";
 import Onboarding from "./pages/Onboarding";
 import SystemHealth from "./pages/SystemHealth";
+import Contacts from "./pages/Contacts";
+import Departments from "./pages/Departments";
+import Workflows from "./pages/Workflows";
+import HelpCenter from "./pages/HelpCenter";
+import LiveChatSettings from "./pages/LiveChatSettings";
+import OutgoingWebhooks from "./pages/OutgoingWebhooks";
 
 // Admin Pages
 import {
@@ -179,6 +188,15 @@ function App() {
           <Route path="team" element={<Team />} />
           <Route path="subscription" element={<Subscription />} />
           <Route path="auto-replies" element={<AutoReplies />} />
+          <Route path="follow-ups" element={<FollowUps />} />
+          <Route path="knowledge-base" element={<KnowledgeBase />} />
+          <Route path="ai-chat" element={<AIChat />} />
+          <Route path="contacts" element={<Contacts />} />
+          <Route path="departments" element={<Departments />} />
+          <Route path="workflows" element={<Workflows />} />
+          <Route path="help-center" element={<HelpCenter />} />
+          <Route path="live-chat" element={<LiveChatSettings />} />
+          <Route path="webhooks" element={<OutgoingWebhooks />} />
           <Route path="onboarding" element={<Onboarding />} />
           <Route path="system-health" element={<SystemHealth />} />
 

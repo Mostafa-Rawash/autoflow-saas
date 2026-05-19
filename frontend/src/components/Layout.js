@@ -19,7 +19,15 @@ import {
   Sparkles,
   Shield,
   ScrollText,
-  BookOpen
+  BookOpen,
+  Clock,
+  Database,
+  Bot,
+  GitBranch,
+  Building2,
+  Contact,
+  MessageCircle,
+  Link2
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { ThemeProvider } from '../context/ThemeContext';
@@ -27,7 +35,16 @@ import { ThemeProvider } from '../context/ThemeContext';
 const menuItems = [
   { path: '/', icon: BarChart3, label: 'لوحة التحكم', available: true },
   { path: '/conversations', icon: MessageSquare, label: 'المحادثات', available: true },
+  { path: '/contacts', icon: Contact, label: 'جهات الاتصال', available: true },
+  { path: '/departments', icon: Building2, label: 'الأقسام', available: true },
   { path: '/auto-replies', icon: Zap, label: 'الردود التلقائية', available: true },
+  { path: '/follow-ups', icon: Clock, label: 'المتابعات', available: true },
+  { path: '/workflows', icon: GitBranch, label: 'مسارات العمل', available: true },
+  { path: '/help-center', icon: BookOpen, label: 'مركز المساعدة', available: true },
+  { path: '/live-chat', icon: MessageCircle, label: 'الدردشة المباشرة', available: true },
+  { path: '/webhooks', icon: Link2, label: 'الويب هوكس', available: true },
+  { path: '/knowledge-base', icon: Database, label: 'قاعدة المعرفة', available: true },
+  { path: '/ai-chat', icon: Bot, label: 'محادثة ذكية', available: true },
   { path: '/templates', icon: FileText, label: 'القوالب', available: true },
   { path: '/channels', icon: Radio, label: 'القنوات', available: true },
   { path: '/analytics', icon: BarChart3, label: 'التحليلات', available: false },

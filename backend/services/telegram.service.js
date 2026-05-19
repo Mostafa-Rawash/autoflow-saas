@@ -4,6 +4,9 @@ const Message = require('../models/Message');
 const User = require('../models/User');
 const Integration = require('../models/Integration');
 const autoReplyService = require('./autoReply.service');
+const followUpService = require('./followUp.service');
+const eventBus = require('./eventBus.service');
+const { EVENTS } = require('./eventBus.service');
 
 class TelegramService {
   constructor() {
@@ -96,6 +99,14 @@ class TelegramService {
     if (global.io) {
       global.io.to(`user-${userId}`).emit('telegram-connected', { userId, botUsername: verifiedUsername, botName: verification.botName, timestamp: new Date() });
     }
+
+    // Emit event bus channel connected event
+    eventBus.emit(userId, EVENTS.CHANNEL_CONNECTED, {
+      channel: 'telegram',
+      info: { botUsername: verifiedUsername, botName: verification.botName }
+    }, 'telegram').catch(err =>
+      console.error('[EventBus] Error emitting CHANNEL_CONNECTED:', err.message)
+    );
     return {
       status: 'connected', message: 'Telegram bot connected successfully',
       data: { status: 'connected', connection: { type: 'telegram', status: 'connected', config: { botUsername: verifiedUsername, botName: verification.botName, botToken } } }
@@ -161,6 +172,14 @@ class TelegramService {
     await this._updateChannel(userId, 'disconnected', {});
     await Integration.findOneAndUpdate({ user: userId, type: 'telegram' }, { status: 'disconnected', config: {} });
     if (global.io) global.io.to(`user-${userId}`).emit('telegram-disconnected', { userId, timestamp: new Date() });
+
+    // Emit event bus channel disconnected event
+    eventBus.emit(userId, EVENTS.CHANNEL_DISCONNECTED, {
+      channel: 'telegram'
+    }, 'telegram').catch(err =>
+      console.error('[EventBus] Error emitting CHANNEL_DISCONNECTED:', err.message)
+    );
+
     return { status: 'disconnected', message: 'Telegram bot disconnected' };
   }
 
@@ -180,6 +199,10 @@ class TelegramService {
           status: 'active'
         });
         await conversation.save();
+        // Follow-up: new conversation trigger
+        followUpService.handleConversationCreated(conversation).catch(err =>
+          console.error('[FollowUp] Error in Telegram new conversation hook:', err.message)
+        );
       }
 
       // Skip duplicate messages
@@ -199,24 +222,77 @@ class TelegramService {
       conversation.unreadCount = (conversation.unreadCount || 0) + 1;
       await conversation.save();
 
+      // Follow-up: contact replied — cancel pending no-reply follow-ups
+      followUpService.handleContactReply(userId, conversation._id).catch(err =>
+        console.error('[FollowUp] Error in Telegram contact reply hook:', err.message)
+      );
+
       if (global.io) global.io.to(`user-${userId}`).emit('new-message', { conversationId: conversation._id, message: newMessage });
+
+      // Emit event bus event
+      eventBus.emit(userId, EVENTS.MESSAGE_RECEIVED, {
+        conversationId: conversation._id,
+        messageId: newMessage._id,
+        channel: 'telegram',
+        contactId: chatId,
+        content: text
+      }, 'telegram').catch(err =>
+        console.error('[EventBus] Error emitting MESSAGE_RECEIVED:', err.message)
+      );
 
       // Auto-reply matching
       if (text) {
-        const matchedRule = await autoReplyService.findMatch(userId, text);
-        if (matchedRule) {
+        const matchedResult = await autoReplyService.findMatch(userId, text, conversation);
+        if (matchedResult) {
+          const { rule: matchedRule, resolvedResponse } = matchedResult;
           try {
-            const sendResult = await this.sendMessage(userId, chatId, matchedRule.response);
+            const sendResult = await this.sendMessage(userId, chatId, resolvedResponse);
             const replyMessage = new Message({
-              conversation: conversation._id, sender: 'bot', content: matchedRule.response, type: 'text',
+              conversation: conversation._id, sender: 'bot', content: resolvedResponse, type: 'text',
               metadata: { autoReplyRule: matchedRule._id, autoReplyName: matchedRule.name, chatId, telegramMessageId: sendResult.messageId }
             });
             await replyMessage.save();
-            conversation.lastMessage = { content: matchedRule.response, timestamp: new Date(), sender: 'bot' };
+            conversation.lastMessage = { content: resolvedResponse, timestamp: new Date(), sender: 'bot' };
             await conversation.save();
             if (global.io) global.io.to(`user-${userId}`).emit('new-message', { conversationId: conversation._id, message: replyMessage });
+            // Emit auto-reply event
+            eventBus.emit(userId, EVENTS.AUTO_REPLY_MATCHED, {
+              conversationId: conversation._id,
+              ruleId: matchedRule._id,
+              ruleName: matchedRule.name,
+              channel: 'telegram'
+            }, 'telegram').catch(err =>
+              console.error('[EventBus] Error emitting AUTO_REPLY_MATCHED:', err.message)
+            );
           } catch (err) {
             console.error('Error sending auto-reply via Telegram:', err.message);
+          }
+        } else {
+          // No auto-reply matched — try AI auto-response
+          const aiResponder = require('./aiResponder.service');
+          const aiResponse = await aiResponder.handleIncomingMessage(userId, text, conversation, 'telegram');
+          if (aiResponse) {
+            try {
+              const sendResult = await this.sendMessage(userId, chatId, aiResponse.text);
+              const replyMessage = await aiResponder.saveMessage(conversation._id, userId, 'telegram', aiResponse);
+              if (replyMessage && global.io) {
+                global.io.to(`user-${userId}`).emit('new-message', {
+                  conversationId: conversation._id,
+                  message: replyMessage
+                });
+              }
+              // Emit AI response event
+              eventBus.emit(userId, EVENTS.AI_RESPONSE_SENT, {
+                conversationId: conversation._id,
+                messageId: replyMessage?._id,
+                channel: 'telegram',
+                source: 'auto_reply'
+              }, 'telegram').catch(err =>
+                console.error('[EventBus] Error emitting AI_RESPONSE_SENT:', err.message)
+              );
+            } catch (err) {
+              console.error('[Telegram] Error sending AI auto-reply:', err.message);
+            }
           }
         }
       }

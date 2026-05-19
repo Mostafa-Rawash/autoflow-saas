@@ -1,0 +1,35 @@
+{
+  "timestamp": "2026-05-18T20:51:43.791Z",
+  "checks": [
+    {
+      "name": "Frontend Build",
+      "status": "fail",
+      "error": "Command failed: npm run build\n(node:1328300) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead\n(Use `node --trace-deprecation ...` to show where the warning was created)\n"
+    },
+    {
+      "name": "Backend Syntax",
+      "status": "pass",
+      "output": "All backend files have valid syntax"
+    },
+    {
+      "name": "Environment Config",
+      "status": "pass",
+      "output": "47 env vars documented"
+    },
+    {
+      "name": "Dependencies",
+      "status": "pass",
+      "output": "Frontend: 13 deps, Backend: 22 deps"
+    },
+    {
+      "name": "Database Models",
+      "status": "pass",
+      "output": "22 models found: AutoReply.js, Chunk.js, Contact.js, Conversation.js, Department.js, Document.js, EmailConfig.js, EventLog.js, FollowUp.js, FollowUpExecution.js, HelpArticle.js, Integration.js, LiveChat.js, Log.js, Message.js, OutgoingWebhook.js, Role.js, Subscription.js, TeamInvitation.js, Template.js, User.js, Workflow.js"
+    },
+    {
+      "name": "API Routes",
+      "status": "pass",
+      "output": "26 routes found: admin.js, analytics.js, auth.js, autoReplies.js, channels.js, chat.js, contacts.js, conversations.js, departments.js, documents.js, email.js, followUps.js, helpArticles.js, livechat.js, logs.js, outgoingWebhooks.js, queue.js, settings.js, subscriptions.js, telegram.js, templates.js, users.js, webhooks.js, whatsapp.js, whatsappBusiness.js, workflows.js"
+    }
+  ]
+}

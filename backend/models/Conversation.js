@@ -53,6 +53,35 @@ const ConversationSchema = new mongoose.Schema({
     campaign: String,
     referrer: String
   },
+  department: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Department'
+  },
+  csat: {
+    score: {
+      type: Number,
+      min: 1,
+      max: 5
+    },
+    comment: String,
+    ratedAt: Date
+  },
+  timeline: [{
+    action: {
+      type: String,
+      enum: ['created', 'assigned', 'unassigned', 'status_change', 'priority_change', 'department_change', 'note_added', 'csat_rated', 'merged', 'escalated']
+    },
+    from: String,
+    to: String,
+    performedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   notes: [{
     content: String,
     addedBy: {

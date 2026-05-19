@@ -16,10 +16,18 @@ const IntegrationSchema = new mongoose.Schema({
     required: true
   },
   config: {
+    // WhatsApp mode: 'web' (whatsapp-web.js QR) or 'business_api' (Cloud API)
+    whatsappMode: {
+      type: String,
+      enum: ['web', 'business_api'],
+      default: 'web'
+    },
+
     // WhatsApp Business API
     phoneNumberId: String,
     accessToken: String,
     businessAccountId: String,
+    wabaId: String, // WhatsApp Business Account ID
     
     // Facebook/Messenger/Instagram
     pageId: String,

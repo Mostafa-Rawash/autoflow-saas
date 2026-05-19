@@ -88,6 +88,12 @@ const UserSchema = new mongoose.Schema({
       email: { type: Boolean, default: true },
       sms: { type: Boolean, default: false },
       push: { type: Boolean, default: true }
+    },
+    aiAutoReply: {
+      enabled: { type: Boolean, default: false },
+      channels: { type: [String], default: ['whatsapp', 'telegram'] },
+      tone: { type: String, enum: ['professional', 'friendly', 'casual'], default: 'professional' },
+      includeSources: { type: Boolean, default: false }
     }
   },
   isActive: {

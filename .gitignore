@@ -60,6 +60,12 @@ sessions/
 *.key
 credentials.json
 
+# Uploaded documents (user data)
+uploads/documents/
+
+# RAG platform (separate future project)
+autoflow-rag-platform/
+
 # Misc
 .cache/
 .temp/

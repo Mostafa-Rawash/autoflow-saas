@@ -18,7 +18,12 @@ const AutoReplySchema = new mongoose.Schema({
   }],
   response: {
     type: String,
-    required: true
+    required: false
+  },
+  templateId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Template',
+    default: null
   },
   matchType: {
     type: String,
